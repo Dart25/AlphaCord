@@ -5,6 +5,7 @@ import club.minnced.discord.webhook.WebhookClient;
 import club.minnced.discord.webhook.external.JDAWebhookClient;
 import club.minnced.discord.webhook.send.WebhookMessage;
 import club.minnced.discord.webhook.send.WebhookMessageBuilder;
+import mindustry.Vars;
 import mindustry.game.EventType.*;
 import mindustry.gen.*;
 import mindustry.mod.*;
@@ -59,10 +60,16 @@ public class AlphaCordPlugin extends Plugin {
         channel = jda.getTextChannelById(channelIdConf.string());
         webhookClient = JDAWebhookClient.withUrl(webhookUrl.string());
 
-        //cleanup
-        Events.on(DisposeEvent.class, event -> {
-            sendServerMessage("Server stopped!");
-            jda.shutdown();
+        //cleanup, this adds a new ApplicationListener because DisposeEvent isn't fired on the server, since
+        //fsr it's fired from the Renderer class...
+        Core.app.addListener(new ApplicationListener() {
+            @Override
+            public void dispose() {
+                sendServerMessage("Server stopped!");
+
+                webhookClient.close();
+                jda.shutdownNow();
+            }
         });
 
         //i realise this code is pretty much a duplicate of the above, but :TohruShrug:
@@ -82,9 +89,30 @@ public class AlphaCordPlugin extends Plugin {
         Events.on(PlayerJoin.class, event -> {
             sendServerMessage(event.player.name + " joined.");
         });
-
         Events.on(PlayerLeave.class, event -> {
             sendServerMessage(event.player.name + " left.");
+        });
+
+        //map load + game over messages
+        Events.on(PlayEvent.class, event -> {
+            sendServerMessage(getCurrentModeName() + " game started on " + Vars.state.map.name() + "!");
+        });
+        Events.on(GameOverEvent.class, event -> {
+            //why oh why does java not have string interpolation?
+            String message = String.format(
+                    """
+                    Game over on %s!
+                    %d waves passed,
+                    %d enemies destroyed,
+                    %d buildings built,
+                    %d buildings destroyed,
+                    and %d units built.
+                    """,
+                    Vars.state.map.name(), Vars.state.stats.wavesLasted, Vars.state.stats.enemyUnitsDestroyed,
+                    Vars.state.stats.buildingsBuilt, Vars.state.stats.buildingsDestroyed, Vars.state.stats.unitsCreated
+            );
+
+            sendServerMessage(message);
         });
 
         //listen for a discord chat event
@@ -94,7 +122,7 @@ public class AlphaCordPlugin extends Plugin {
                 //ignore bot/webhook messages
                 if (event.getAuthor().isBot() || event.isWebhookMessage()) return;
 
-                Call.sendMessage("[blue][Discord] " + event.getAuthor().getEffectiveName() + "[]: " + event.getMessage().getContentDisplay());
+                Call.sendMessage("[blue][Discord][] " + event.getMember().getEffectiveName() + ": " + event.getMessage().getContentDisplay());
             }
         });
 
@@ -136,5 +164,15 @@ public class AlphaCordPlugin extends Plugin {
         }
 
         return message;
+    }
+
+    //there has to be a builtin function for this somewhere but i can't find it
+    private static String getCurrentModeName() {
+        if (Vars.state.rules.pvp) return "PVP";
+        if (Vars.state.rules.infiniteResources) return "Sandbox";
+        if (Vars.state.rules.attackMode) return "Attack";
+        if (Vars.state.rules.editor) return "Editor";
+
+        return "Survival";
     }
 }
