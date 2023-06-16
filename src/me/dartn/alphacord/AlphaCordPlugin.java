@@ -189,10 +189,10 @@ public class AlphaCordPlugin extends Plugin {
 
     //there has to be a builtin function for this somewhere but i can't find it
     private static String getCurrentModeName() {
+        if (Vars.state.rules.editor) return "Editor";
         if (Vars.state.rules.pvp) return "PVP";
         if (Vars.state.rules.infiniteResources) return "Sandbox";
         if (Vars.state.rules.attackMode) return "Attack";
-        if (Vars.state.rules.editor) return "Editor";
 
         return "Survival";
     }
