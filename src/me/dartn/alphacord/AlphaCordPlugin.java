@@ -19,6 +19,8 @@ import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import org.jetbrains.annotations.NotNull;
 
+import java.awt.*;
+
 public class AlphaCordPlugin extends Plugin {
     private static final Config
             channelIdConf = new Config("channelId", "ID of the Discord channel to send/receive messages in.", "CID_HERE"),
@@ -119,11 +121,23 @@ public class AlphaCordPlugin extends Plugin {
         jda.addEventListener(new ListenerAdapter() {
             @Override
             public void onMessageReceived(@NotNull MessageReceivedEvent event) {
-                //ignore bot/webhook messages
-                if (event.getAuthor().isBot() || event.isWebhookMessage()) return;
+                //ignore bot/webhook messages & messages from the wrong channel
+                if (event.getAuthor().isBot() || event.isWebhookMessage() ||
+                        !event.getChannel().getId().equals(channelIdConf.string())) return;
 
-                Core.app.post(() -> {
-                    Call.sendMessage("[blue][Discord][] " + event.getMember().getEffectiveName() + ": " + event.getMessage().getContentDisplay());
+                //sorta hacky, String.repeat throws a "cannot find symbol" error because java 8, so we do this
+                StringBuilder attBuilder = new StringBuilder();
+
+                attBuilder.append(' ');
+
+                for (int i = 0; i < event.getMessage().getAttachments().size(); i++) {
+                    attBuilder.append("<attachment> ");
+                }
+
+                Core.app.post(() -> { //uE80D is the Discord symbol ingame
+                    Call.sendMessage("[blue]\uE80D [" + colourToHex(event.getMember().getColor()) + "]" +
+                            event.getMember().getEffectiveName() + ":[white] " +
+                            event.getMessage().getContentDisplay() + attBuilder.toString().trim());
                 });
             }
         });
@@ -134,6 +148,11 @@ public class AlphaCordPlugin extends Plugin {
     //util method to send a message to discord from a PlayerChatEvent easily
     private void sendDiscordMessage(PlayerChatEvent event) {
         //avatarUrl is the alpha unit sprite
+        Unit playerUnit = event.player.unit();
+
+        //System.out.println(playerUnit.type.name);
+        //System.out.println(playerUnit.team.id);
+
         sendDiscordMessage(event.player.name, cleanMessage(event.message), "https://files.catbox.moe/1dmf06.png");
     }
 
@@ -176,5 +195,10 @@ public class AlphaCordPlugin extends Plugin {
         if (Vars.state.rules.editor) return "Editor";
 
         return "Survival";
+    }
+
+    // https://forums.oracle.com/ords/apexds/post/convert-java-awt-color-to-hex-string-8724#comment_323462165417437941337851389448683170665
+    private static String colourToHex(Color colour) {
+        return String.format("#%02X%02X%02X", colour.getRed(), colour.getGreen(), colour.getBlue());
     }
 }
