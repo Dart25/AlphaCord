@@ -122,7 +122,9 @@ public class AlphaCordPlugin extends Plugin {
                 //ignore bot/webhook messages
                 if (event.getAuthor().isBot() || event.isWebhookMessage()) return;
 
-                Call.sendMessage("[blue][Discord][] " + event.getMember().getEffectiveName() + ": " + event.getMessage().getContentDisplay());
+                Core.app.post(() -> {
+                    Call.sendMessage("[blue][Discord][] " + event.getMember().getEffectiveName() + ": " + event.getMessage().getContentDisplay());
+                });
             }
         });
 
