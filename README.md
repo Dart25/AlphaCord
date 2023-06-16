@@ -8,7 +8,7 @@ Edit the name of the project itself by going into `settings.gradle`.
 
 ### Basic Usage
 
-Set the channelId, discordToken, and webhookUrl config options, and start your server.
+Set the `channelId`, `discordToken`, and `webhookUrl` config options, and then start your server.
 
 ### Building a Jar
 
