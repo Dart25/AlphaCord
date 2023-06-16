@@ -53,8 +53,6 @@ public class AlphaCordPlugin extends Plugin {
         jdaBuilder.enableIntents(GatewayIntent.MESSAGE_CONTENT);
         jdaBuilder.setActivity(Activity.playing("Animdustry"));
 
-        System.out.println(channelIdConf.string());
-
         jda = jdaBuilder.build();
         try {
             jda.awaitReady(); //or getTextChannelById may return null
@@ -67,7 +65,6 @@ public class AlphaCordPlugin extends Plugin {
 
         //cleanup
         Events.on(DisposeEvent.class, event -> {
-            System.out.println("SHUTDOWN");
             sendServerMessage("Server stopped!");
             jda.shutdown();
         });
@@ -106,31 +103,6 @@ public class AlphaCordPlugin extends Plugin {
         });
 
         sendServerMessage("Server started!");
-    }
-
-    //register commands that player can invoke in-game
-    @Override
-    public void registerClientCommands(CommandHandler handler){
-
-        //register a simple reply command
-        handler.<Player>register("reply", "<text...>", "A simple ping command that echoes a player's text.", (args, player) -> {
-            player.sendMessage("You said: [accent] " + args[0]);
-        });
-
-        //register a whisper command which can be used to send other players messages
-        handler.<Player>register("whisper", "<player> <text...>", "Whisper text to another player.", (args, player) -> {
-            //find player by name
-            Player other = Groups.player.find(p -> p.name.equalsIgnoreCase(args[0]));
-
-            //give error message with scarlet-colored text if player isn't found
-            if(other == null){
-                player.sendMessage("[scarlet]No player by that name found!");
-                return;
-            }
-
-            //send the other player a message, using [lightgray] for gray text color and [] to reset color
-            other.sendMessage("[lightgray](whisper) " + player.name + ":[] " + args[1]);
-        });
     }
 
     //util method to send a message to discord from a PlayerChatEvent easily
