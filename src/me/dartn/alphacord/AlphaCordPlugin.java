@@ -128,8 +128,6 @@ public class AlphaCordPlugin extends Plugin {
                 //sorta hacky, String.repeat throws a "cannot find symbol" error because java 8, so we do this
                 StringBuilder attBuilder = new StringBuilder();
 
-                attBuilder.append(' ');
-
                 for (int i = 0; i < event.getMessage().getAttachments().size(); i++) {
                     attBuilder.append("<attachment> ");
                 }
@@ -137,7 +135,8 @@ public class AlphaCordPlugin extends Plugin {
                 Core.app.post(() -> { //uE80D is the Discord symbol ingame
                     Call.sendMessage("[blue]\uE80D [" + colourToHex(event.getMember().getColor()) + "]" +
                             event.getMember().getEffectiveName() + ":[white] " +
-                            event.getMessage().getContentDisplay() + attBuilder.toString().trim());
+                            event.getMessage().getContentDisplay() + (attBuilder.length() > 0 ? " " : "") +
+                            attBuilder.toString().trim());
                 });
             }
         });
@@ -150,10 +149,11 @@ public class AlphaCordPlugin extends Plugin {
         //avatarUrl is the alpha unit sprite
         Unit playerUnit = event.player.unit();
 
-        //System.out.println(playerUnit.type.name);
-        //System.out.println(playerUnit.team.id);
+        String avatarUrl = String.format("https://dartn.duckdns.org/Mindustry/teams/team%d/%s.png",
+                playerUnit.team.id, playerUnit.type.name);
 
-        sendDiscordMessage(event.player.name, cleanMessage(event.message), "https://files.catbox.moe/1dmf06.png");
+        // used to default to https://files.catbox.moe/1dmf06.png
+        sendDiscordMessage(event.player.name, cleanMessage(event.message), avatarUrl);
     }
 
     private void sendServerMessage(String message) {
