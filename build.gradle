@@ -28,12 +28,22 @@ allprojects{
 }
 
 dependencies{
+    //discord deps
+    def jdaVersion = '5.0.0-beta.10'
+    def webhooksVersion = '0.8.2'
+
     compileOnly "com.github.Anuken.Arc:arc-core:$mindustryVersion"
     compileOnly "com.github.Anuken.MindustryJitpack:core:$mindustryVersion"
     annotationProcessor "com.github.Anuken:jabel:$jabelVersion"
+    //change 'implementation' to 'compile' in old Gradle versions
+    implementation("net.dv8tion:JDA:$jdaVersion") {
+        exclude module: 'opus-java'
+    }
+    implementation "club.minnced:discord-webhooks:$webhooksVersion"
 }
 
 jar{
+    duplicatesStrategy(DuplicatesStrategy.EXCLUDE) //fix weird error about META-INF/LICENSE being a duplicate
     archiveFileName = "${project.archivesBaseName}.jar"
     from{
         configurations.runtimeClasspath.collect{it.isDirectory() ? it : zipTree(it)}
