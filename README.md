@@ -1,12 +1,8 @@
 ## AlphaCord
 
-### Setup
-
-Clone this repository first.
-To edit the plugin display name and other data, take a look at `plugin.json`.
-Edit the name of the project itself by going into `settings.gradle`.
-
 ### Basic Usage
+
+To get a Jar, either build it yourself (detailed below), or download one from [GitHub Actions](https://github.com/Dart25/AlphaCord/actions).
 
 Set the `channelId`, `discordToken`, and `webhookUrl` config options, and then start your server.
 
