@@ -1,8 +1,10 @@
 package me.dartn.alphacord;
 
 import arc.*;
+import arc.util.Strings;
 import club.minnced.discord.webhook.WebhookClient;
 import club.minnced.discord.webhook.external.JDAWebhookClient;
+import club.minnced.discord.webhook.send.AllowedMentions;
 import club.minnced.discord.webhook.send.WebhookMessage;
 import club.minnced.discord.webhook.send.WebhookMessageBuilder;
 import mindustry.Vars;
@@ -27,23 +29,28 @@ public class AlphaCordPlugin extends Plugin {
             tokenConf = new Config("discordToken", "Token of the Discord bot to use.", "TOKEN_HERE"),
             webhookUrl = new Config("webhookUrl", "URL of the webhook to send messages through.", "WEBHOOK_URL_HERE");
 
+    //Make the last 2 false to disable pinging Discord users from Mindustry
+    private static final AllowedMentions allowedMentions = new AllowedMentions()
+            .withParseEveryone(false)
+            .withParseUsers(true)
+            .withParseRoles(true);
+
     private JDA jda;
-    private TextChannel channel;
     private WebhookClient webhookClient;
 
-    //called when game initializes
+    //Called when the game initializes
     @Override
     public void init(){
-        //make everyone know the plugin's been configured incorrectly if it has been :P
+        //Make everyone know the plugin's been configured incorrectly if it has been :P
         if (channelIdConf.string() == channelIdConf.defaultValue ||
                 tokenConf.string() == tokenConf.defaultValue ||
                 webhookUrl.string() == webhookUrl.defaultValue) {
             Events.on(PlayerJoin.class, event -> {
-                //send a message telling everyone that the admin should configure the plugin correctly
+                //Send a message telling everyone that the admin should configure the plugin correctly
                 Call.sendMessage("[scarlet]ALERT![] AlphaCord has not been configured correctly! The server's owner/administrator should set the channelId, webhookUrl, and discordToken configs. (eg. run \"config channelId 1098728495691083806\" in the server's console)");
             });
 
-            return; //skip all further initialization if the plugin isn't configured correctly, to avoid crashing everything...
+            return; //Skip all further initialization if the plugin isn't configured correctly, to avoid crashing everything...
         }
 
         //JDA setup
@@ -54,16 +61,15 @@ public class AlphaCordPlugin extends Plugin {
 
         jda = jdaBuilder.build();
         try {
-            jda.awaitReady(); //or getTextChannelById may return null
+            jda.awaitReady(); //Or getTextChannelById may return null
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
 
-        channel = jda.getTextChannelById(channelIdConf.string());
         webhookClient = JDAWebhookClient.withUrl(webhookUrl.string());
 
-        //cleanup, this adds a new ApplicationListener because DisposeEvent isn't fired on the server, since
-        //fsr it's fired from the Renderer class...
+        //Cleanup, this adds a new ApplicationListener because DisposeEvent isn't fired on the server, since
+        //for some reason it's fired from the Renderer class...
         Core.app.addListener(new ApplicationListener() {
             @Override
             public void dispose() {
@@ -74,20 +80,20 @@ public class AlphaCordPlugin extends Plugin {
             }
         });
 
-        //i realise this code is pretty much a duplicate of the above, but :TohruShrug:
-        if (channel == null) {
+        //I realise this code is pretty much a duplicate of the above, but :TohruShrug:
+        if (jda.getTextChannelById(channelIdConf.string()) == null) {
             Events.on(PlayerJoin.class, event -> {
-                //send a message telling everyone that the admin should configure the plugin correctly
+                //Send a message telling everyone that the admin should configure the plugin correctly
                 Call.sendMessage("[scarlet]ALERT![] AlphaCord has not been configured correctly! The channel set by the server administrator doesn't exist!");
             });
 
-            return; //skip all further initialization if the plugin isn't configured correctly, to avoid crashing everything...
+            return; //Skip all further initialization if the plugin isn't configured correctly, to avoid crashing everything...
         }
 
-        //listen for a mindustry chat message event
+        //Listen for a Mindustry chat message event
         Events.on(PlayerChatEvent.class, this::sendDiscordMessage);
 
-        //player join + leave messages
+        //Player join + leave messages
         Events.on(PlayerJoin.class, event -> {
             sendServerMessage(event.player.name + " joined.");
         });
@@ -95,20 +101,23 @@ public class AlphaCordPlugin extends Plugin {
             sendServerMessage(event.player.name + " left.");
         });
 
-        //map load + game over messages
+        //Map load + Game Over messages
         Events.on(PlayEvent.class, event -> {
-            sendServerMessage(getCurrentModeName() + " game started on " + Vars.state.map.name() + "!");
+            //toString seems to be recommended but doesn't return the correct results (?, probably just me being stupid)
+            String modeName = Strings.capitalize(Vars.state.rules.mode().name());
+
+            sendServerMessage(modeName + " game started on " + Vars.state.map.name() + "!");
         });
         Events.on(GameOverEvent.class, event -> {
-            //why oh why does java not have string interpolation?
-            String message = String.format(
+            //Why oh why does Java not have string interpolation?
+            String message = Strings.format(
                     """
-                    Game over on %s!
-                    %d waves passed,
-                    %d enemies destroyed,
-                    %d buildings built,
-                    %d buildings destroyed,
-                    and %d units built.
+                    Game over on @!
+                    @ waves passed,
+                    @ enemies destroyed,
+                    @ buildings built,
+                    @ buildings destroyed,
+                    and @ units built.
                     """,
                     Vars.state.map.name(), Vars.state.stats.wavesLasted, Vars.state.stats.enemyUnitsDestroyed,
                     Vars.state.stats.buildingsBuilt, Vars.state.stats.buildingsDestroyed, Vars.state.stats.unitsCreated
@@ -117,15 +126,15 @@ public class AlphaCordPlugin extends Plugin {
             sendServerMessage(message);
         });
 
-        //listen for a discord chat event
+        //Listen for a Discord chat event
         jda.addEventListener(new ListenerAdapter() {
             @Override
             public void onMessageReceived(@NotNull MessageReceivedEvent event) {
-                //ignore bot/webhook messages & messages from the wrong channel
+                //Ignore bot/webhook messages & messages from the wrong channel
                 if (event.getAuthor().isBot() || event.isWebhookMessage() ||
                         !event.getChannel().getId().equals(channelIdConf.string())) return;
 
-                //sorta hacky, String.repeat throws a "cannot find symbol" error because java 8, so we do this
+                //Sorta hacky, String.repeat throws a "cannot find symbol" error because Java 8, so we do this
                 StringBuilder attBuilder = new StringBuilder();
 
                 for (int i = 0; i < event.getMessage().getAttachments().size(); i++) {
@@ -144,12 +153,11 @@ public class AlphaCordPlugin extends Plugin {
         sendServerMessage("Server started!");
     }
 
-    //util method to send a message to discord from a PlayerChatEvent easily
+    //Util method to send a message to Discord from a PlayerChatEvent easily
     private void sendDiscordMessage(PlayerChatEvent event) {
-        //avatarUrl is the alpha unit sprite
         Unit playerUnit = event.player.unit();
 
-        String avatarUrl = String.format("https://dartn.duckdns.org/Mindustry/teams/team%d/%s.png",
+        String avatarUrl = Strings.format("https://dartn.duckdns.org/Mindustry/teams/team@/@.png",
                 playerUnit.team.id, playerUnit.type.name);
 
         // used to default to https://files.catbox.moe/1dmf06.png
@@ -157,7 +165,7 @@ public class AlphaCordPlugin extends Plugin {
     }
 
     private void sendServerMessage(String message) {
-        //avatarUrl is alpha-chan >w< sprite because i couldn't really find something that fits "mindustry server",
+        //avatarUrl is the alpha-chan >w< sprite because I couldn't really find something that fits "Mindustry server",
         //and just using a core is boring :P
         sendDiscordMessage("Server", message, "https://files.catbox.moe/hd82m4.png");
     }
@@ -168,13 +176,14 @@ public class AlphaCordPlugin extends Plugin {
         msgBuilder.setUsername(username);
         msgBuilder.setAvatarUrl(avatarUrl);
         msgBuilder.setContent(message);
+        msgBuilder.setAllowedMentions(allowedMentions);
 
         WebhookMessage msg = msgBuilder.build();
 
         webhookClient.send(msg);
     }
 
-    //ported from https://github.com/Brandons404/easyDiscordPlugin/blob/master/scripts/main.js#L39 but modified a bit
+    //Ported from https://github.com/Brandons404/easyDiscordPlugin/blob/master/scripts/main.js#L39 but modified a bit.
     private static String cleanMessage(String message) {
         int lastCharCode = message.codePointAt(message.length() - 1);
         int secondLastCharCode = message.codePointAt(message.length() - 2);
@@ -185,16 +194,6 @@ public class AlphaCordPlugin extends Plugin {
         }
 
         return message;
-    }
-
-    //there has to be a builtin function for this somewhere but i can't find it
-    private static String getCurrentModeName() {
-        if (Vars.state.rules.editor) return "Editor";
-        if (Vars.state.rules.pvp) return "PVP";
-        if (Vars.state.rules.infiniteResources) return "Sandbox";
-        if (Vars.state.rules.attackMode) return "Attack";
-
-        return "Survival";
     }
 
     // https://forums.oracle.com/ords/apexds/post/convert-java-awt-color-to-hex-string-8724#comment_323462165417437941337851389448683170665
