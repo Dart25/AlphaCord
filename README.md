@@ -1,6 +1,6 @@
 ## AlphaCord
 
-## You probably don't care about this branch unless you administrate the Fish servers :3
+## You probably shouldn't care about this branch unless you administrate the Fish servers :3
 
 ### Basic Usage
 
