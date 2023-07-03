@@ -155,6 +155,11 @@ public class AlphaCordPlugin extends Plugin {
 
     //Util method to send a message to Discord from a PlayerChatEvent easily
     private void sendDiscordMessage(PlayerChatEvent event) {
+        //ignore messages from muted players
+        if (FishGlue.isPlayerMuted(event.player.uuid())) {
+            return;
+        }
+
         Unit playerUnit = event.player.unit();
 
         String avatarUrl = Strings.format("https://dartn.duckdns.org/Mindustry/teams/team@/@.png",
