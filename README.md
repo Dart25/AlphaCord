@@ -1,5 +1,7 @@
 ## AlphaCord
 
+## You probably don't care about this branch unless you administrate the Fish servers :3
+
 ### Basic Usage
 
 To get a Jar, either build it yourself (detailed below), or download one from [GitHub Actions](https://github.com/Dart25/AlphaCord/actions).
