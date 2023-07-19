@@ -111,9 +111,6 @@ public class AlphaCordPlugin extends Plugin {
         Events.on(PlayerLeave.class, event -> {
             sendServerMessage(Strings.stripColors(event.player.name) + " left.");
         });
-        Events.on(PlayerConnect.class, event -> {
-            System.out.println(event.player.name);
-        });
 
         //Map load + Game Over messages
         Events.on(PlayEvent.class, event -> {
