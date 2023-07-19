@@ -111,6 +111,9 @@ public class AlphaCordPlugin extends Plugin {
         Events.on(PlayerLeave.class, event -> {
             sendServerMessage(Strings.stripColors(event.player.name) + " left.");
         });
+        Events.on(PlayerConnect.class, event -> {
+            System.out.println(event.player.name);
+        });
 
         //Map load + Game Over messages
         Events.on(PlayEvent.class, event -> {
@@ -196,6 +199,9 @@ public class AlphaCordPlugin extends Plugin {
     private void sendServerMessage(String message) {
         //avatarUrl is the alpha-chan >w< sprite because I couldn't really find something that fits "Mindustry server",
         //and just using a core is boring :P
+        if (adminLogEnabled) {
+            adminLogChannel.sendMessage(message).queue();
+        }
         sendDiscordMessage("Server", message, "https://dartn.duckdns.org/Mindustry/alpha.png");
     }
 
