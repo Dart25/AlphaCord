@@ -201,6 +201,9 @@ public class AlphaCordPlugin extends Plugin {
     private void sendServerMessage(String message) {
         //avatarUrl is the alpha-chan >w< sprite because I couldn't really find something that fits "Mindustry server",
         //and just using a core is boring :P
+        if (adminLogEnabled) {
+            adminLogChannel.sendMessage(message).queue();
+        }
         sendDiscordMessage("Server", message, "https://dartn.duckdns.org/Mindustry/alpha.png");
     }
 
