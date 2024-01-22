@@ -47,9 +47,9 @@ public class AlphaCordPlugin extends Plugin {
     @Override
     public void init(){
         //Make everyone know the plugin's been configured incorrectly if it has been :P
-        if (channelIdConf.string() == channelIdConf.defaultValue ||
-                tokenConf.string() == tokenConf.defaultValue ||
-                webhookUrl.string() == webhookUrl.defaultValue) {
+        if (channelIdConf.string().trim().length() < 1 ||
+                tokenConf.string().trim().length() < 1 ||
+                webhookUrl.string().trim().length() < 1) {
             Events.on(PlayerJoin.class, event -> {
                 //Send a message telling everyone that the admin should configure the plugin correctly
                 Call.sendMessage("[scarlet]ALERT![] AlphaCord has not been configured correctly! The server's owner/administrator should set the channelId, webhookUrl, and discordToken configs. (eg. run \"config channelId 1098728495691083806\" in the server's console)");
