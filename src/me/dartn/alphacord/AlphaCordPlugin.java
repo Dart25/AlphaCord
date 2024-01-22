@@ -47,9 +47,9 @@ public class AlphaCordPlugin extends Plugin {
     @Override
     public void init(){
         //Make everyone know the plugin's been configured incorrectly if it has been :P
-        if (channelIdConf.string() == channelIdConf.defaultValue ||
-                tokenConf.string() == tokenConf.defaultValue ||
-                webhookUrl.string() == webhookUrl.defaultValue) {
+        if (channelIdConf.string().equals(channelIdConf.defaultValue) ||
+                tokenConf.string().equals(tokenConf.defaultValue) ||
+                webhookUrl.string().equals(webhookUrl.defaultValue)) {
             Events.on(PlayerJoin.class, event -> {
                 //Send a message telling everyone that the admin should configure the plugin correctly
                 Call.sendMessage("[scarlet]ALERT![] AlphaCord has not been configured correctly! The server's owner/administrator should set the channelId, webhookUrl, and discordToken configs. (eg. run \"config channelId 1098728495691083806\" in the server's console)");
@@ -58,7 +58,7 @@ public class AlphaCordPlugin extends Plugin {
             return; //Skip all further initialization if the plugin isn't configured correctly, to avoid crashing everything...
         }
 
-        adminLogEnabled = adminLogChannelId.string() != adminLogChannelId.defaultValue;
+        adminLogEnabled = !adminLogChannelId.string().equals(adminLogChannelId.defaultValue);
 
         //JDA setup
         JDABuilder jdaBuilder = JDABuilder.createDefault(tokenConf.string());
