@@ -66,7 +66,12 @@ public class AlphaCordPlugin extends Plugin {
         jdaBuilder.enableIntents(GatewayIntent.MESSAGE_CONTENT);
         jdaBuilder.setActivity(Activity.playing("Animdustry"));
 
-        jda = jdaBuilder.build();
+        try {
+            jda = jdaBuilder.build();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return;
+        }
         try {
             jda.awaitReady(); //Or getTextChannelById may return null
         } catch (InterruptedException e) {
