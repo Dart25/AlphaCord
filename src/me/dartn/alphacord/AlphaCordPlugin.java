@@ -191,7 +191,7 @@ public class AlphaCordPlugin extends Plugin {
         if (msgIsSpam(event.player, filteredMessage)) return;
 
         //don't send commands
-        if(message.startsWith(Vars.netServer.clientCommands.getPrefix())) return;
+        if(filteredMessage.startsWith(Vars.netServer.clientCommands.getPrefix())) return;
 
         //spam filter is always index 0, we skip it because we have our own impl
         for (int i = 1; i < Vars.netServer.admins.chatFilters.size; i++) {
