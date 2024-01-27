@@ -64,7 +64,7 @@ public class AlphaCordPlugin extends Plugin {
         JDABuilder jdaBuilder = JDABuilder.createDefault(tokenConf.string());
 
         jdaBuilder.enableIntents(GatewayIntent.MESSAGE_CONTENT);
-        jdaBuilder.setActivity(Activity.playing("Animdustry"));
+        jdaBuilder.setActivity(Activity.playing("on the Fish Mindustry server"));
 
         try {
             jda = jdaBuilder.build();
@@ -174,12 +174,9 @@ public class AlphaCordPlugin extends Plugin {
     //Util method to send a message to Discord from a PlayerChatEvent easily
     private void sendDiscordMessage(PlayerChatEvent event) {
         //ignore messages from muted players
-        if (FishGlue.isPlayerMuted(event.player.uuid())) {
-            return;
-        }
+        if(FishGlue.isPlayerMuted(event.player.uuid())) return;
 
         Unit playerUnit = event.player.unit();
-
         String avatarUrl = Strings.format("https://dartn.duckdns.org/Mindustry/teams/team@/@.png",
                 playerUnit.team.id, playerUnit.type.name);
 
@@ -192,6 +189,9 @@ public class AlphaCordPlugin extends Plugin {
 
         //spam filter
         if (msgIsSpam(event.player, filteredMessage)) return;
+
+        //don't send commands
+        if(message.startsWith(netServer.clientCommands.getPrefix())) return;
 
         //spam filter is always index 0, we skip it because we have our own impl
         for (int i = 1; i < Vars.netServer.admins.chatFilters.size; i++) {
