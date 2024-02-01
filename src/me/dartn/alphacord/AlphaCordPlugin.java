@@ -181,9 +181,11 @@ public class AlphaCordPlugin extends Plugin {
                 playerUnit.team.id, playerUnit.type.name);
 
         //easier to search for messages from a specific player in the old format, this is also uncensored & colours aren't removed
-        if (adminLogEnabled) {
-            adminLogChannel.sendMessage(Strings.format("**@**: @", event.player.name, cleanMessage(event.message))).queue();
-        }
+        try {
+            if(adminLogEnabled){
+                adminLogChannel.sendMessage(Strings.format("**@**: @", event.player.name, cleanMessage(event.message))).queue();
+            }
+        } catch(Exception ignored){}
 
         String filteredMessage = cleanMessage(event.message);
 
@@ -206,10 +208,10 @@ public class AlphaCordPlugin extends Plugin {
     public void sendServerMessage(String message) {
         //avatarUrl is the alpha-chan >w< sprite because I couldn't really find something that fits "Mindustry server",
         //and just using a core is boring :P
-        if (adminLogEnabled) {
-            adminLogChannel.sendMessage(message).queue();
-        }
-        sendDiscordMessage("Server", replaceMessage(message), "https://dartn.duckdns.org/Mindustry/alpha.png");
+        try {
+            if(adminLogEnabled) adminLogChannel.sendMessage(message).queue();
+            sendDiscordMessage("Server", replaceMessage(message), "https://dartn.duckdns.org/Mindustry/alpha.png");
+        } catch(Exception ignored){}
     }
 
     public static String replaceName(String text){
