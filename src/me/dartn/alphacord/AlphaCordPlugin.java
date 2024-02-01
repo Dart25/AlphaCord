@@ -1,6 +1,8 @@
 package me.dartn.alphacord;
 
 import arc.*;
+import arc.func.ConsT;
+import arc.util.Http;
 import arc.util.Log;
 import arc.util.Strings;
 import arc.util.Time;
@@ -24,6 +26,11 @@ import net.dv8tion.jda.api.requests.GatewayIntent;
 import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.util.Properties;
+import java.util.Set;
 
 public class AlphaCordPlugin extends Plugin {
     private static final Config
@@ -42,6 +49,31 @@ public class AlphaCordPlugin extends Plugin {
     private WebhookClient webhookClient;
     private boolean adminLogEnabled;
     private TextChannel adminLogChannel;
+
+    //emote replacement range
+    private static final int emoteRangeStart = 0xF675;
+    private static final int emoteRangeEnd = 0xF8FF;
+
+    //icon substitutions
+    private static final CharReplacement[] rankReplacements;
+    //special indexed mindy -> dc emote array
+    private static final String[] emoteReplacements;
+    //arc.struct.
+
+    static {
+        //init substitutions
+        rankReplacements = new CharReplacement[] {
+                new CharReplacement(fmtRankReplacement(Iconc.add), "<T>"), //trusted
+                new CharReplacement(fmtRankReplacement(Iconc.hammer), "<M>"), //mod
+                new CharReplacement(fmtRankReplacement(Iconc.admin), "<A>"), //admin
+                new CharReplacement(fmtRankReplacement(Iconc.logic), "<D>"), //dev
+                new CharReplacement(fmtRankReplacement(Iconc.star), "<F>"), //donor? not sure what this is supposed to be
+                new CharReplacement(fmtRankReplacement(Iconc.eye), "<G>") //manager I think
+        };
+        //load emote replacements
+        emoteReplacements = new String[emoteRangeEnd - emoteRangeStart + 1];
+        loadEmoteDatabase(emoteReplacements);
+    }
 
     //Called when the game initializes
     @Override
@@ -64,6 +96,7 @@ public class AlphaCordPlugin extends Plugin {
         JDABuilder jdaBuilder = JDABuilder.createDefault(tokenConf.string());
 
         jdaBuilder.enableIntents(GatewayIntent.MESSAGE_CONTENT);
+        //why :/
         jdaBuilder.setActivity(Activity.playing("on the Fish Mindustry server"));
 
         try {
@@ -79,7 +112,6 @@ public class AlphaCordPlugin extends Plugin {
         }
 
         webhookClient = JDAWebhookClient.withUrl(webhookUrl.string());
-
         if (adminLogEnabled) {
             adminLogChannel = jda.getTextChannelById(adminLogChannelId.string());
         }
@@ -102,7 +134,6 @@ public class AlphaCordPlugin extends Plugin {
                 //Send a message telling everyone that the admin should configure the plugin correctly
                 Call.sendMessage("[scarlet]ALERT![] AlphaCord has not been configured correctly! The channel set by the server administrator doesn't exist!");
             });
-
             return; //Skip all further initialization if the plugin isn't configured correctly, to avoid crashing everything...
         }
 
@@ -111,17 +142,16 @@ public class AlphaCordPlugin extends Plugin {
 
         //Player join + leave messages
         Events.on(PlayerJoin.class, event -> {
-            sendServerMessage(Strings.stripColors(event.player.name) + " joined.");
+            sendServerMessage(fixMessageEmojis(Strings.stripColors(event.player.name)) + " joined.");
         });
         Events.on(PlayerLeave.class, event -> {
-            sendServerMessage(Strings.stripColors(event.player.name) + " left.");
+            sendServerMessage(fixMessageEmojis(Strings.stripColors(event.player.name)) + " left.");
         });
 
         //Map load + Game Over messages
         Events.on(PlayEvent.class, event -> {
             //toString seems to be recommended but doesn't return the correct results (?, probably just me being stupid)
             String modeName = Strings.capitalize(Vars.state.rules.mode().name());
-
             sendServerMessage(modeName + " game started on " + Vars.state.map.name() + "!");
         });
         Events.on(GameOverEvent.class, event -> {
@@ -140,7 +170,6 @@ public class AlphaCordPlugin extends Plugin {
                     Vars.state.stats.buildingsBuilt, Vars.state.stats.buildingsDestroyed, Vars.state.stats.unitsCreated,
                     Groups.player.size()
             );
-
             sendServerMessage(message);
         });
 
@@ -154,7 +183,6 @@ public class AlphaCordPlugin extends Plugin {
 
                 //Sorta hacky, String.repeat throws a "cannot find symbol" error because Java 8, so we do this
                 StringBuilder attBuilder = new StringBuilder();
-
                 for (int i = 0; i < event.getMessage().getAttachments().size(); i++) {
                     attBuilder.append("<attachment> ");
                 }
@@ -162,7 +190,7 @@ public class AlphaCordPlugin extends Plugin {
                 Core.app.post(() -> { //uE80D is the Discord symbol ingame
                     Call.sendMessage("[blue]\uE80D [" + colourToHex(event.getMember().getColor()) + "]" +
                             event.getMember().getEffectiveName() + ":[white] " +
-                            event.getMessage().getContentDisplay() + (attBuilder.length() > 0 ? " " : "") +
+                            event.getMessage().getContentDisplay() + (attBuilder.length() < 1 ? "" : " ") +
                             attBuilder.toString().trim());
                     Log.info("(Discord) &fi@:, @", "&lc" + event.getMember().getEffectiveName(), event.getMessage().getContentDisplay());
                 });
@@ -173,9 +201,9 @@ public class AlphaCordPlugin extends Plugin {
     }
 
     //Util method to send a message to Discord from a PlayerChatEvent easily
-    public void sendDiscordMessage(PlayerChatEvent event) {
+    private void sendDiscordMessage(PlayerChatEvent event) {
         //ignore messages from muted players
-        if(FishGlue.isPlayerMuted(event.player.uuid())) return;
+        if (FishGlue.isPlayerMuted(event.player.uuid())) return;
 
         Unit playerUnit = event.player.unit();
         String avatarUrl = Strings.format("https://dartn.duckdns.org/Mindustry/teams/team@/@.png",
@@ -183,18 +211,15 @@ public class AlphaCordPlugin extends Plugin {
 
         //easier to search for messages from a specific player in the old format, this is also uncensored & colours aren't removed
         try {
-            if(adminLogEnabled){
+            if (adminLogEnabled) {
                 adminLogChannel.sendMessage(Strings.format("**@**: @", Strings.stripColors(event.player.name), cleanMessage(event.message))).queue();
             }
-        } catch(Exception ignored){}
+        } catch (Exception ignored) { }
 
         String filteredMessage = cleanMessage(event.message);
 
         //spam filter
         if (msgIsSpam(event.player, filteredMessage)) return;
-
-        //don't send commands
-        if(filteredMessage.startsWith(Vars.netServer.clientCommands.getPrefix())) return;
 
         //spam filter is always index 0, we skip it because we have our own impl
         for (int i = 1; i < Vars.netServer.admins.chatFilters.size; i++) {
@@ -202,42 +227,63 @@ public class AlphaCordPlugin extends Plugin {
             if (filteredMessage == null) return;
         }
 
+        //don't send commands
+        if (filteredMessage.startsWith(Vars.netServer.clientCommands.getPrefix())) return;
+
         //used to default to https://files.catbox.moe/1dmf06.png
-        sendDiscordMessage(replaceName(event.player.name), replaceMessage(filteredMessage), avatarUrl);
+        sendDiscordMessage(fixRankEmojis(Strings.stripColors(event.player.name)), fixMessageEmojis(Strings.stripColors(filteredMessage)), avatarUrl);
     }
 
-    public void sendServerMessage(String message) {
+    private void sendServerMessage(String message) {
         //avatarUrl is the alpha-chan >w< sprite because I couldn't really find something that fits "Mindustry server",
         //and just using a core is boring :P
         try {
-            if(adminLogEnabled) adminLogChannel.sendMessage(message).queue();
-            sendDiscordMessage("Server", replaceMessage(message), "https://dartn.duckdns.org/Mindustry/alpha.png");
-        } catch(Exception ignored){}
+            if (adminLogEnabled) adminLogChannel.sendMessage(message).queue();
+            sendDiscordMessage("Server", message, "https://dartn.duckdns.org/Mindustry/alpha.png");
+        } catch (Exception ignored) { }
     }
 
-    public static String replaceName(String text){
-        return Strings.stripColors(text)
-            .replace("<"+String.valueOf(Iconc.add)+">", "<T>")
-            .replace("<"+String.valueOf(Iconc.hammer)+">", "<M>")
-            .replace("<"+String.valueOf(Iconc.admin)+">", "<A>")
-            .replace("<"+String.valueOf(Iconc.logic)+">", "<D>")
-            .replace("<"+String.valueOf(Iconc.star)+">", "<F>")
-            .replace("<"+String.valueOf(Iconc.eye)+">", "<G>");
+    private static String fmtRankReplacement(char c) {
+        return "<" + c + ">";
     }
 
-    public static String replaceMessage(String text){
-        return Strings.stripColors(text)
-            .replace(String.valueOf(Iconc.add), "+")
-            .replace(String.valueOf(Iconc.hammer), "🔨")
-            .replace(String.valueOf(Iconc.admin), "{admin}")
-            .replace(String.valueOf(Iconc.logic), "{logic}")
-            .replace(String.valueOf(Iconc.star), "⭐")
-            .replace(String.valueOf(Iconc.lock), "🔒")
-            .replace("<"+String.valueOf(Iconc.eye)+">", "👁");
+    private static String fixRankEmojis(String text){
+        for (int i = 0; i < rankReplacements.length; i++) {
+            text = rankReplacements[i].process(text);
+        }
+        return text;
     }
 
-    public void sendDiscordMessage(String username, String message, String avatarUrl) {
-        if(message.isEmpty() || username.isEmpty()) return;
+    private static String fixMessageEmojis(String msg) {
+        StringBuilder result = new StringBuilder();
+        for (int i = 0; i < msg.length(); i++) {
+            char c = msg.charAt(i);
+            if (c >= emoteRangeStart && c <= emoteRangeEnd) {
+                //fix c
+                int idx = (int)c - emoteRangeStart;
+                String replacement = emoteReplacements[idx];
+                //ignore if c isn't in the database
+                if (replacement == null) {
+                    result.append(c);
+                    continue;
+                }
+
+                //append the replacement instead of the char
+                result.append(replacement);
+            } else {
+                result.append(c);
+            }
+        }
+        return result.toString();
+    }
+
+    private void sendDiscordMessage(String username, String message, String avatarUrl) {
+        if (username.isEmpty() || message.isEmpty()) {
+            /*Log.info("FAIL!");
+            Log.info(username);
+            Log.info(message);*/
+            return;
+        }
         WebhookMessageBuilder msgBuilder = new WebhookMessageBuilder();
 
         msgBuilder.setUsername(username);
@@ -251,11 +297,11 @@ public class AlphaCordPlugin extends Plugin {
     }
 
     //https://github.com/Anuken/Mindustry/blob/93daa7a5dcc3fac9e5f40c3375e9f57ae4720ff4/core/src/mindustry/net/Administration.java#L36
-    public static boolean msgIsSpam(Player player, String message) {
+    private static boolean msgIsSpam(Player player, String message) {
         long resetTime = Config.messageRateLimit.num() * 1000L;
-        if(Config.antiSpam.bool() && !player.isLocal() && !player.admin){
+        if (Config.antiSpam.bool() && !player.isLocal() && !player.admin){
             //prevent people from spamming messages quickly
-            if(resetTime > 0 && Time.timeSinceMillis(player.getInfo().lastMessageTime) < resetTime){
+            if (resetTime > 0 && Time.timeSinceMillis(player.getInfo().lastMessageTime) < resetTime){
                 return true;
             }
 
@@ -267,7 +313,7 @@ public class AlphaCordPlugin extends Plugin {
     }
 
     //Ported from https://github.com/Brandons404/easyDiscordPlugin/blob/master/scripts/main.js#L39 but modified a bit.
-    public static String cleanMessage(String message) {
+    private static String cleanMessage(String message) {
         if (message.length() < 2) return message;
 
         int lastCharCode = message.codePointAt(message.length() - 1);
@@ -281,9 +327,39 @@ public class AlphaCordPlugin extends Plugin {
         return message;
     }
 
+    private static void loadEmoteDatabase(String[] target) {
+        //download the emote db from my server
+        Log.info("Downloading emote database...");
+        Http.HttpRequest req = Http.get("https://dartn.duckdns.org/Mindustry/emdb.xml");
+        req.submit(new ConsT<Http.HttpResponse, Exception>() {
+            @Override
+            public void get(Http.HttpResponse res) throws Exception {
+                Log.info("Download complete!");
+
+                //load it
+                Properties props = new Properties();
+                try {
+                    props.loadFromXML(res.getResultAsStream());
+                } catch (IOException ex) {
+                    Log.err("EDB load failed! Emote fixer won't work :/");
+                }
+
+                Set<String> names = props.stringPropertyNames();
+                //I hate advanced for loops :(
+                for (String name : names) {
+                    String value = props.getProperty(name);
+                    //base16 = hex
+                    int idx = Integer.parseInt(name, 16);
+
+                    target[idx - emoteRangeStart] = value;
+                }
+            }
+        });
+    }
+
     //https://forums.oracle.com/ords/apexds/post/convert-java-awt-color-to-hex-string-8724#comment_323462165417437941337851389448683170665
     public static String colourToHex(Color colour) {
-        if(colour == null) return "white";
+        if (colour == null) return "#FFFFFF";
         return String.format("#%02X%02X%02X", colour.getRed(), colour.getGreen(), colour.getBlue());
     }
 }
