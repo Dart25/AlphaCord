@@ -236,6 +236,7 @@ public class AlphaCordPlugin extends Plugin {
     }
 
     public void sendDiscordMessage(String username, String message, String avatarUrl) {
+        if(message.isEmpty() || username.isEmpty()) return;
         WebhookMessageBuilder msgBuilder = new WebhookMessageBuilder();
 
         msgBuilder.setUsername(username);
@@ -281,6 +282,7 @@ public class AlphaCordPlugin extends Plugin {
 
     //https://forums.oracle.com/ords/apexds/post/convert-java-awt-color-to-hex-string-8724#comment_323462165417437941337851389448683170665
     public static String colourToHex(Color colour) {
+        if(colour == null) return "white";
         return String.format("#%02X%02X%02X", colour.getRed(), colour.getGreen(), colour.getBlue());
     }
 }
