@@ -164,6 +164,7 @@ public class AlphaCordPlugin extends Plugin {
                             event.getMember().getEffectiveName() + ":[white] " +
                             event.getMessage().getContentDisplay() + (attBuilder.length() > 0 ? " " : "") +
                             attBuilder.toString().trim());
+                    Log.info("(Discord) &fi@:, @", "&lc" + event.getMember().getEffectiveName(), event.getMessage().getContentDisplay());
                 });
             }
         });
