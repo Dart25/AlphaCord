@@ -36,7 +36,7 @@ public class AlphaCordPlugin extends Plugin {
     private static final AllowedMentions allowedMentions = new AllowedMentions()
             .withParseEveryone(false)
             .withParseUsers(true)
-            .withParseRoles(true);
+            .withParseRoles(false);
 
     private JDA jda;
     private WebhookClient webhookClient;
@@ -172,7 +172,7 @@ public class AlphaCordPlugin extends Plugin {
     }
 
     //Util method to send a message to Discord from a PlayerChatEvent easily
-    private void sendDiscordMessage(PlayerChatEvent event) {
+    public void sendDiscordMessage(PlayerChatEvent event) {
         //ignore messages from muted players
         if(FishGlue.isPlayerMuted(event.player.uuid())) return;
 
@@ -200,19 +200,40 @@ public class AlphaCordPlugin extends Plugin {
         }
 
         //used to default to https://files.catbox.moe/1dmf06.png
-        sendDiscordMessage(Strings.stripColors(event.player.name), Strings.stripColors(filteredMessage), avatarUrl);
+        sendDiscordMessage(replaceName(event.player.name), replaceMessage(filteredMessage), avatarUrl);
     }
 
-    private void sendServerMessage(String message) {
+    public void sendServerMessage(String message) {
         //avatarUrl is the alpha-chan >w< sprite because I couldn't really find something that fits "Mindustry server",
         //and just using a core is boring :P
         if (adminLogEnabled) {
             adminLogChannel.sendMessage(message).queue();
         }
-        sendDiscordMessage("Server", message, "https://dartn.duckdns.org/Mindustry/alpha.png");
+        sendDiscordMessage("Server", replaceMessage(message), "https://dartn.duckdns.org/Mindustry/alpha.png");
     }
 
-    private void sendDiscordMessage(String username, String message, String avatarUrl) {
+    public static String replaceName(String text){
+        return Strings.stripColors(text)
+            .replace("<"+String.valueOf(Iconc.add)+">", "<T>")
+            .replace("<"+String.valueOf(Iconc.hammer)+">", "<M>")
+            .replace("<"+String.valueOf(Iconc.admin)+">", "<A>")
+            .replace("<"+String.valueOf(Iconc.logic)+">", "<D>")
+            .replace("<"+String.valueOf(Iconc.star)+">", "<F>")
+            .replace("<"+String.valueOf(Iconc.eye)+">", "<G>");
+    }
+
+    public static String replaceMessage(String text){
+        return Strings.stripColors(text)
+            .replace(String.valueOf(Iconc.add), "+")
+            .replace(String.valueOf(Iconc.hammer), "🔨")
+            .replace(String.valueOf(Iconc.admin), "{admin}")
+            .replace(String.valueOf(Iconc.logic), "{logic}")
+            .replace(String.valueOf(Iconc.star), "⭐")
+            .replace(String.valueOf(Iconc.lock), "🔒")
+            .replace("<"+String.valueOf(Iconc.eye)+">", "👁");
+    }
+
+    public void sendDiscordMessage(String username, String message, String avatarUrl) {
         WebhookMessageBuilder msgBuilder = new WebhookMessageBuilder();
 
         msgBuilder.setUsername(username);
@@ -226,7 +247,7 @@ public class AlphaCordPlugin extends Plugin {
     }
 
     //https://github.com/Anuken/Mindustry/blob/93daa7a5dcc3fac9e5f40c3375e9f57ae4720ff4/core/src/mindustry/net/Administration.java#L36
-    private static boolean msgIsSpam(Player player, String message) {
+    public static boolean msgIsSpam(Player player, String message) {
         long resetTime = Config.messageRateLimit.num() * 1000L;
         if(Config.antiSpam.bool() && !player.isLocal() && !player.admin){
             //prevent people from spamming messages quickly
@@ -242,7 +263,7 @@ public class AlphaCordPlugin extends Plugin {
     }
 
     //Ported from https://github.com/Brandons404/easyDiscordPlugin/blob/master/scripts/main.js#L39 but modified a bit.
-    private static String cleanMessage(String message) {
+    public static String cleanMessage(String message) {
         if (message.length() < 2) return message;
 
         int lastCharCode = message.codePointAt(message.length() - 1);
@@ -257,7 +278,7 @@ public class AlphaCordPlugin extends Plugin {
     }
 
     //https://forums.oracle.com/ords/apexds/post/convert-java-awt-color-to-hex-string-8724#comment_323462165417437941337851389448683170665
-    private static String colourToHex(Color colour) {
+    public static String colourToHex(Color colour) {
         return String.format("#%02X%02X%02X", colour.getRed(), colour.getGreen(), colour.getBlue());
     }
 }
