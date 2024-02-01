@@ -183,7 +183,7 @@ public class AlphaCordPlugin extends Plugin {
         //easier to search for messages from a specific player in the old format, this is also uncensored & colours aren't removed
         try {
             if(adminLogEnabled){
-                adminLogChannel.sendMessage(Strings.format("**@**: @", event.player.name, cleanMessage(event.message))).queue();
+                adminLogChannel.sendMessage(Strings.format("**@**: @", Strings.stripColors(event.player.name), cleanMessage(event.message))).queue();
             }
         } catch(Exception ignored){}
 
