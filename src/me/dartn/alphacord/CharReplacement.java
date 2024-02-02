@@ -17,4 +17,8 @@ public class CharReplacement {
     public String process(String str) {
         return str.replace(from, to);
     }
+
+    public static CharReplacement rankPrefix(char icon, char to){
+        return new CharReplacement("<" + icon + ">", "<" + to + ">");
+    }
 }

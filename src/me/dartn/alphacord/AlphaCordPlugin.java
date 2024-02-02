@@ -2,10 +2,7 @@ package me.dartn.alphacord;
 
 import arc.*;
 import arc.func.ConsT;
-import arc.util.Http;
-import arc.util.Log;
-import arc.util.Strings;
-import arc.util.Time;
+import arc.util.*;
 import club.minnced.discord.webhook.WebhookClient;
 import club.minnced.discord.webhook.external.JDAWebhookClient;
 import club.minnced.discord.webhook.send.AllowedMentions;
@@ -53,24 +50,20 @@ public class AlphaCordPlugin extends Plugin {
     private static final int emoteRangeEnd = 0xF8FF;
 
     //icon substitutions
-    private static final CharReplacement[] rankReplacements;
+    private static final CharReplacement[] rankReplacements = new CharReplacement[] {
+        CharReplacement.rankPrefix(Iconc.add, 'T'), //trusted
+        CharReplacement.rankPrefix(Iconc.hammer, 'M'), //mod
+        CharReplacement.rankPrefix(Iconc.admin, 'A'), //admin
+        CharReplacement.rankPrefix(Iconc.logic, 'D'), //dev
+        CharReplacement.rankPrefix(Iconc.star, 'F'), //fish member
+        CharReplacement.rankPrefix(Iconc.eye, 'G') //manager
+    };
     //special indexed mindy -> dc emote array
-    private static final String[] emoteReplacements;
+    private static final String[] emoteReplacements = new String[emoteRangeEnd - emoteRangeStart + 1];
     //arc.struct.
 
     static {
-        //init substitutions
-        rankReplacements = new CharReplacement[] {
-                new CharReplacement(fmtRankReplacement(Iconc.add), "<T>"), //trusted
-                new CharReplacement(fmtRankReplacement(Iconc.hammer), "<M>"), //mod
-                new CharReplacement(fmtRankReplacement(Iconc.admin), "<A>"), //admin
-                new CharReplacement(fmtRankReplacement(Iconc.logic), "<D>"), //dev
-                new CharReplacement(fmtRankReplacement(Iconc.star), "<F>"), //donor? not sure what this is supposed to be
-                new CharReplacement(fmtRankReplacement(Iconc.eye), "<G>") //manager I think
-        };
-        //load emote replacements
-        emoteReplacements = new String[emoteRangeEnd - emoteRangeStart + 1];
-        loadEmoteDatabase(emoteReplacements);
+        loadEmoteDatabase();
     }
 
     //Called when the game initializes
