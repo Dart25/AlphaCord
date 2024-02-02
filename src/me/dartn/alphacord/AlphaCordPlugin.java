@@ -23,9 +23,7 @@ import net.dv8tion.jda.api.requests.GatewayIntent;
 import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
-import java.io.IOException;
 import java.util.Properties;
-import java.util.Set;
 
 public class AlphaCordPlugin extends Plugin {
     private static final Config
@@ -42,7 +40,6 @@ public class AlphaCordPlugin extends Plugin {
 
     private JDA jda;
     private WebhookClient webhookClient;
-    private boolean adminLogEnabled;
     private TextChannel adminLogChannel;
 
     //emote replacement range
@@ -69,67 +66,52 @@ public class AlphaCordPlugin extends Plugin {
     //Called when the game initializes
     @Override
     public void init(){
-        //Make everyone know the plugin's been configured incorrectly if it has been :P
+        
+        //Config check
         if (channelIdConf.string().equals(channelIdConf.defaultValue) ||
                 tokenConf.string().equals(tokenConf.defaultValue) ||
                 webhookUrl.string().equals(webhookUrl.defaultValue)) {
-            Events.on(PlayerJoin.class, event -> {
-                //Send a message telling everyone that the admin should configure the plugin correctly
-                Call.sendMessage("[scarlet]ALERT![] AlphaCord has not been configured correctly! The server's owner/administrator should set the channelId, webhookUrl, and discordToken configs. (eg. run \"config channelId 1098728495691083806\" in the server's console)");
-            });
-
+            Log.err("[AlphaCord] Configuration not complete. Set the channelId, webhookUrl, and discordToken configs.");
             return; //Skip all further initialization if the plugin isn't configured correctly, to avoid crashing everything...
         }
 
-        adminLogEnabled = !adminLogChannelId.string().equals(adminLogChannelId.defaultValue);
-
-        //JDA setup
-        JDABuilder jdaBuilder = JDABuilder.createDefault(tokenConf.string());
-
-        jdaBuilder.enableIntents(GatewayIntent.MESSAGE_CONTENT);
-        //why :/
-        jdaBuilder.setActivity(Activity.playing("on the Fish Mindustry server"));
-
-        try {
-            jda = jdaBuilder.build();
-        } catch (Exception e) {
-            e.printStackTrace();
-            return;
-        }
-        try {
-            jda.awaitReady(); //Or getTextChannelById may return null
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
-        webhookClient = JDAWebhookClient.withUrl(webhookUrl.string());
-        if (adminLogEnabled) {
-            adminLogChannel = jda.getTextChannelById(adminLogChannelId.string());
-        }
-
-        //Cleanup, this adds a new ApplicationListener because DisposeEvent isn't fired on the server, since
+        //Cleanup, uses ApplicationListener because DisposeEvent isn't fired on the server, since
         //for some reason it's fired from the Renderer class...
         Core.app.addListener(new ApplicationListener() {
             @Override
             public void dispose() {
                 sendServerMessage("Server stopped!");
 
-                webhookClient.close();
-                jda.shutdownNow();
+                if(webhookClient != null) webhookClient.close();
+                if(jda != null) jda.shutdownNow();
             }
         });
 
-        //I realise this code is pretty much a duplicate of the above, but :TohruShrug:
-        if (jda.getTextChannelById(channelIdConf.string()) == null) {
-            Events.on(PlayerJoin.class, event -> {
-                //Send a message telling everyone that the admin should configure the plugin correctly
-                Call.sendMessage("[scarlet]ALERT![] AlphaCord has not been configured correctly! The channel set by the server administrator doesn't exist!");
-            });
-            return; //Skip all further initialization if the plugin isn't configured correctly, to avoid crashing everything...
+        //JDA setup
+        try {
+            jda = JDABuilder.createDefault(tokenConf.string())
+                .enableIntents(GatewayIntent.MESSAGE_CONTENT)
+                .setActivity(Activity.playing("on the Fish Mindustry server"))
+                .build();
+            jda.awaitReady(); //TODO do not call this in init() as it blocks server load
+
+            webhookClient = JDAWebhookClient.withUrl(webhookUrl.string());
+            if (!adminLogChannelId.string().equals(adminLogChannelId.defaultValue)) {
+                adminLogChannel = jda.getTextChannelById(adminLogChannelId.string());
+            }
+            if (jda.getTextChannelById(channelIdConf.string()) == null) {
+                Log.err("[AlphaCord] Configuration error: Configured channel @ does not exist, or the bot does not have access to it.", channelIdConf.string());
+                return; //Skip all further initialization if the plugin isn't configured correctly, to avoid crashing everything...
+            }
+        } catch (Exception e){
+            e.printStackTrace();
+            return;
         }
 
+
+
         //Listen for a Mindustry chat message event
-        Events.on(PlayerChatEvent.class, this::sendDiscordMessage);
+        Events.on(PlayerChatEvent.class, this::onPlayerChat);
 
         //Player join + leave messages
         Events.on(PlayerJoin.class, event -> {
@@ -141,9 +123,7 @@ public class AlphaCordPlugin extends Plugin {
 
         //Map load + Game Over messages
         Events.on(PlayEvent.class, event -> {
-            //toString seems to be recommended but doesn't return the correct results (?, probably just me being stupid)
-            String modeName = Strings.capitalize(Vars.state.rules.mode().name());
-            sendServerMessage(modeName + " game started on " + Vars.state.map.name() + "!");
+            sendServerMessage("New game started on " + Vars.state.map.name() + "!");
         });
         Events.on(GameOverEvent.class, event -> {
             //Why oh why does Java not have string interpolation?
@@ -191,8 +171,7 @@ public class AlphaCordPlugin extends Plugin {
         sendServerMessage("Server started!");
     }
 
-    //Util method to send a message to Discord from a PlayerChatEvent easily
-    private void sendDiscordMessage(PlayerChatEvent event) {
+    private void onPlayerChat(PlayerChatEvent event) {
         //ignore messages from muted players
         if (FishGlue.isPlayerMuted(event.player.uuid())) return;
 
@@ -200,26 +179,22 @@ public class AlphaCordPlugin extends Plugin {
         String avatarUrl = Strings.format("https://dartn.duckdns.org/Mindustry/teams/team@/@.png",
                 playerUnit.team.id, playerUnit.type.name);
 
-        //easier to search for messages from a specific player in the old format, this is also uncensored & colours aren't removed
-        try {
-            if (adminLogEnabled) {
-                adminLogChannel.sendMessage(Strings.format("**@**: @", Strings.stripColors(event.player.name), cleanMessage(event.message))).queue();
-            }
-        } catch (Exception ignored) { }
-
         String filteredMessage = cleanMessage(event.message);
+        
+        //admin log messages are in the old format which is easier to search, this is also uncensored & colours aren't removed
+        sendAdminLogMessage(Strings.format("**@**: @", Strings.stripColors(event.player.name), filteredMessage));
 
-        //spam filter
+
         if (msgIsSpam(event.player, filteredMessage)) return;
+
+        //don't send commands (but send them to log)
+        if (filteredMessage.startsWith(Vars.netServer.clientCommands.getPrefix())) return;
 
         //spam filter is always index 0, we skip it because we have our own impl
         for (int i = 1; i < Vars.netServer.admins.chatFilters.size; i++) {
             filteredMessage = Vars.netServer.admins.chatFilters.get(i).filter(event.player, filteredMessage);
             if (filteredMessage == null) return;
         }
-
-        //don't send commands
-        if (filteredMessage.startsWith(Vars.netServer.clientCommands.getPrefix())) return;
 
         //used to default to https://files.catbox.moe/1dmf06.png
         sendDiscordMessage(fixRankEmojis(Strings.stripColors(event.player.name)), fixMessageEmojis(Strings.stripColors(filteredMessage)), avatarUrl);
@@ -229,14 +204,11 @@ public class AlphaCordPlugin extends Plugin {
         //avatarUrl is the alpha-chan >w< sprite because I couldn't really find something that fits "Mindustry server",
         //and just using a core is boring :P
         try {
-            if (adminLogEnabled) adminLogChannel.sendMessage(message).queue();
+            sendAdminLogMessage(message);
             sendDiscordMessage("Server", message, "https://dartn.duckdns.org/Mindustry/alpha.png");
         } catch (Exception ignored) { }
     }
 
-    private static String fmtRankReplacement(char c) {
-        return "<" + c + ">";
-    }
 
     private static String fixRankEmojis(String text){
         for (int i = 0; i < rankReplacements.length; i++) {
@@ -275,16 +247,21 @@ public class AlphaCordPlugin extends Plugin {
             Log.info(message);*/
             return;
         }
-        WebhookMessageBuilder msgBuilder = new WebhookMessageBuilder();
 
-        msgBuilder.setUsername(username);
-        msgBuilder.setAvatarUrl(avatarUrl);
-        msgBuilder.setContent(message);
-        msgBuilder.setAllowedMentions(allowedMentions);
+        webhookClient.send(
+            new WebhookMessageBuilder()
+                .setUsername(username)
+                .setAvatarUrl(avatarUrl)
+                .setContent(message)
+                .setAllowedMentions(allowedMentions)
+                .build()
+        );
+    }
 
-        WebhookMessage msg = msgBuilder.build();
-
-        webhookClient.send(msg);
+    private void sendAdminLogMessage(String message){
+        try {
+            if(adminLogChannel != null) adminLogChannel.sendMessage(message).queue();
+        } catch(Exception ignored){}
     }
 
     //https://github.com/Anuken/Mindustry/blob/93daa7a5dcc3fac9e5f40c3375e9f57ae4720ff4/core/src/mindustry/net/Administration.java#L36
@@ -318,34 +295,19 @@ public class AlphaCordPlugin extends Plugin {
         return message;
     }
 
-    private static void loadEmoteDatabase(String[] target) {
+    private static void loadEmoteDatabase() {
         //download the emote db from my server
         Log.info("Downloading emote database...");
-        Http.HttpRequest req = Http.get("https://dartn.duckdns.org/Mindustry/emdb.xml");
-        req.submit(new ConsT<Http.HttpResponse, Exception>() {
-            @Override
-            public void get(Http.HttpResponse res) throws Exception {
-                Log.info("Download complete!");
-
-                //load it
-                Properties props = new Properties();
-                try {
-                    props.loadFromXML(res.getResultAsStream());
-                } catch (IOException ex) {
-                    Log.err("EDB load failed! Emote fixer won't work :/");
-                }
-
-                Set<String> names = props.stringPropertyNames();
-                //I hate advanced for loops :(
-                for (String name : names) {
-                    String value = props.getProperty(name);
-                    //base16 = hex
-                    int idx = Integer.parseInt(name, 16);
-
-                    target[idx - emoteRangeStart] = value;
-                }
-            }
-        });
+        Http.get("https://dartn.duckdns.org/Mindustry/emdb.xml", res -> {
+            //parse and load
+            Properties props = new Properties();
+            props.loadFromXML(res.getResultAsStream());
+            props.forEach((key, value) -> {
+                //Safe cast, props is clean
+                emoteReplacements[Integer.parseInt((String)key, 16) - emoteRangeStart] = (String)value;
+            });
+            Log.info("Downloaded emote database.");
+        }, e -> Log.err("EDB load failed! Emote fixer won't work :/"));
     }
 
     //https://forums.oracle.com/ords/apexds/post/convert-java-awt-color-to-hex-string-8724#comment_323462165417437941337851389448683170665
