@@ -18,7 +18,7 @@ import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
-import net.dv8tion.jda.api.events.ReadyEvent;
+import net.dv8tion.jda.api.events.session.ReadyEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import org.jetbrains.annotations.NotNull;
@@ -245,7 +245,7 @@ public class AlphaCordPlugin extends Plugin {
     }
 
     private static String escapeTextDiscord(String text){
-        return text.replaceAll("([*\\_~\`|:])", "\\\\$1");
+        return text.replaceAll("([\\\\*_~`|:])", "\\\\$1");
     }
     private static String cleanNameToDiscord(String text){
         return fixRankEmojis(escapeTextDiscord(Strings.stripColors(text)));
