@@ -120,29 +120,29 @@ public class AlphaCordPlugin extends Plugin {
 
         //Player join + leave messages
         Events.on(PlayerJoin.class, event -> {
-            sendServerMessage(fixMessageEmojis(Strings.stripColors(event.player.name)) + " joined.");
+            sendServerMessage(Strings.format("**@** joined.", cleanNameToDiscord(event.player.name)));//!
         });
         Events.on(PlayerLeave.class, event -> {
-            sendServerMessage(fixMessageEmojis(Strings.stripColors(event.player.name)) + " left.");
+            sendServerMessage(Strings.format("**@** left.", cleanNameToDiscord(event.player.name)));//!
         });
 
         //Map load + Game Over messages
         Events.on(PlayEvent.class, event -> {
-            sendServerMessage("New game started on " + Vars.state.map.name() + "!");
+            sendServerMessage("New game started on " + cleanTextToDiscord(Vars.state.map.name()) + "!");//!
         });
         Events.on(GameOverEvent.class, event -> {
             //Why oh why does Java not have string interpolation?
-            sendServerMessage(Strings.format(
+            sendServerMessage(Strings.format(//!
                     """
-                    Game over on *@*!
-                    **@** waves passed,
-                    **@** enemies destroyed,
-                    @ buildings built,
-                    @ buildings destroyed,
-                    and @ units built,
-                    with @ people online.
-                    """,
-                    Vars.state.map.name(), Vars.state.stats.wavesLasted, Vars.state.stats.enemyUnitsDestroyed,
+                    Game over on **@**!
+                    `@` waves passed,
+                    `@` enemies destroyed,
+                    `@` buildings built,
+                    `@` buildings destroyed,
+                    and `@` units built,
+                    with `@` people online.
+                    """, //TODO make message include winning team, and gamemode specific (eg say game over on survival, defeat/victory on attack, something else on pvp)
+                    cleanTextToDiscord(Vars.state.map.name()), Vars.state.stats.wavesLasted, Vars.state.stats.enemyUnitsDestroyed,
                     Vars.state.stats.buildingsBuilt, Vars.state.stats.buildingsDestroyed, Vars.state.stats.unitsCreated,
                     Groups.player.size()
             ));
@@ -161,7 +161,7 @@ public class AlphaCordPlugin extends Plugin {
                 for (int i = 0; i < event.getMessage().getAttachments().size(); i++) {
                     attBuilder.append("<attachment> ");
                 }
-
+                //!
                 Core.app.post(() -> { //uE80D is the Discord symbol ingame
                     Call.sendMessage("[blue]\uE80D [" + colourToHex(event.getMember().getColor()) + "]" +
                             event.getMember().getEffectiveName() + ":[white] " +
@@ -175,7 +175,7 @@ public class AlphaCordPlugin extends Plugin {
         sendServerMessage("Server started!");
     }
 
-    private void onPlayerChat(PlayerChatEvent event) {
+    private void onPlayerChat(PlayerChatEvent event) { //!
         //ignore messages from muted players
         if (FishGlue.isPlayerMuted(event.player.uuid())) return;
 
@@ -201,7 +201,7 @@ public class AlphaCordPlugin extends Plugin {
         }
 
         //used to default to https://files.catbox.moe/1dmf06.png
-        sendDiscordMessage(fixRankEmojis(Strings.stripColors(event.player.name)), fixMessageEmojis(Strings.stripColors(filteredMessage)), avatarUrl);
+        sendDiscordMessage(cleanNameToDiscord(event.player.name), cleanTextToDiscord(filteredMessage), avatarUrl);
     }
 
     private void sendServerMessage(String message) {
@@ -242,6 +242,16 @@ public class AlphaCordPlugin extends Plugin {
             }
         }
         return result.toString();
+    }
+
+    private static String escapeTextDiscord(String text){
+        return text.replaceAll("([*\\_~\`|:])", "\\\\$1");
+    }
+    private static String cleanNameToDiscord(String text){
+        return fixRankEmojis(escapeTextDiscord(Strings.stripColors(text)));
+    }
+    private static String cleanTextToDiscord(String text){
+        return fixMessageEmojis(escapeTextDiscord(Strings.stripColors(text)));
     }
 
     private void sendDiscordMessage(String username, String message, String avatarUrl) {
