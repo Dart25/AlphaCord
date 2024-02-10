@@ -57,12 +57,8 @@ public class AlphaCordPlugin extends Plugin {
         CharReplacement.rankPrefix(Iconc.eye, 'G') //manager
     };
     //special indexed mindy -> dc emote array
-    private static final String[] emoteReplacements = new String[emoteRangeEnd - emoteRangeStart + 1];
-    //arc.struct.
+    private static @Nullable String[] emoteReplacements;
 
-    static {
-        loadEmoteDatabase();
-    }
 
     //Called when the game initializes
     @Override
@@ -75,6 +71,8 @@ public class AlphaCordPlugin extends Plugin {
             Log.err("[AlphaCord] Configuration not complete. Set the channelId, webhookUrl, and discordToken configs.");
             return; //Skip all further initialization if the plugin isn't configured correctly, to avoid crashing everything...
         }
+
+        loadEmoteDatabase();
 
         //Cleanup, uses ApplicationListener because DisposeEvent isn't fired on the server, since
         //for some reason it's fired from the Renderer class...
@@ -163,11 +161,13 @@ public class AlphaCordPlugin extends Plugin {
                 }
                 //!
                 Core.app.post(() -> { //uE80D is the Discord symbol ingame
-                    Call.sendMessage("[blue]\uE80D [" + colourToHex(event.getMember().getColor()) + "]" +
-                            event.getMember().getEffectiveName() + ":[white] " +
-                            event.getMessage().getContentDisplay() + (attBuilder.length() < 1 ? "" : " ") +
-                            attBuilder.toString().trim());
-                    Log.info("(Discord) &fi@:, @", "&lc" + event.getMember().getEffectiveName(), event.getMessage().getContentDisplay());
+                    Call.sendMessage(Strings.format(
+                        "[blue]\uE80D [@]@: [white]@",
+                        colourToHex(event.getMember().getColor()),
+                        event.getMember().getEffectiveName(),
+                        (event.getMessage().getContentDisplay() + attBuilder.toString()).trim()
+                    ));
+                    Log.info(Strings.format("(Discord) &fi&lc@: &fr&lw@", event.getMember().getEffectiveName(), event.getMessage().getContentDisplay()));
                 });
             }
         });
@@ -201,7 +201,7 @@ public class AlphaCordPlugin extends Plugin {
         }
 
         //used to default to https://files.catbox.moe/1dmf06.png
-        sendDiscordMessage(cleanNameToDiscord(event.player.name), cleanTextToDiscord(filteredMessage), avatarUrl);
+        sendDiscordMessage(fixRankEmojis(Strings.stripColors(event.player.name)), cleanTextToDiscord(filteredMessage), avatarUrl);
     }
 
     private void sendServerMessage(String message) {
@@ -222,6 +222,7 @@ public class AlphaCordPlugin extends Plugin {
     }
 
     private static String fixMessageEmojis(String msg) {
+        if(emoteReplacements == null) return msg;
         StringBuilder result = new StringBuilder();
         for (int i = 0; i < msg.length(); i++) {
             char c = msg.charAt(i);
@@ -245,7 +246,7 @@ public class AlphaCordPlugin extends Plugin {
     }
 
     private static String escapeTextDiscord(String text){
-        return text.replaceAll("([\\\\*_~`|:])", "\\\\$1");
+        return text.replaceAll("([\\\\*_~`|:<])", "\\\\$1");
     }
     private static String cleanNameToDiscord(String text){
         return fixRankEmojis(escapeTextDiscord(Strings.stripColors(text)));
@@ -313,6 +314,7 @@ public class AlphaCordPlugin extends Plugin {
         //download the emote db from my server
         Log.info("Downloading emote database...");
         Http.get("https://dartn.duckdns.org/Mindustry/emdb.xml", res -> {
+            emoteReplacements = new String[emoteRangeEnd - emoteRangeStart + 1];
             //parse and load
             Properties props = new Properties();
             props.loadFromXML(res.getResultAsStream());
