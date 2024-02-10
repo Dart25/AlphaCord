@@ -24,4 +24,4 @@ jobs:
       with:
         repo_token: ${{ secrets.GITHUB_TOKEN }}
         file: build/libs/${{ github.event.repository.name }}.jar
-        tag: ${{ github.ref }}
+        tag: build_${{ github.ref }}
