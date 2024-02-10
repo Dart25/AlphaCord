@@ -18,6 +18,7 @@ import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
+import net.dv8tion.jda.api.events.ReadyEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import org.jetbrains.annotations.NotNull;
@@ -93,20 +94,24 @@ public class AlphaCordPlugin extends Plugin {
                 .enableIntents(GatewayIntent.MESSAGE_CONTENT)
                 .setActivity(Activity.playing("on the Fish Mindustry server"))
                 .build();
-            jda.awaitReady(); //TODO do not call this in init() as it blocks server load
 
             webhookClient = JDAWebhookClient.withUrl(webhookUrl.string());
-            if (!adminLogChannelId.string().equals(adminLogChannelId.defaultValue)) {
-                adminLogChannel = jda.getTextChannelById(adminLogChannelId.string());
-            }
-            if (jda.getTextChannelById(channelIdConf.string()) == null) {
-                Log.err("[AlphaCord] Configuration error: Configured channel @ does not exist, or the bot does not have access to it.", channelIdConf.string());
-                return; //Skip all further initialization if the plugin isn't configured correctly, to avoid crashing everything...
-            }
         } catch (Exception e){
             e.printStackTrace();
             return;
         }
+        jda.addEventListener(new ListenerAdapter() {
+            @Override
+            public void onReady(ReadyEvent event) {
+                if (!adminLogChannelId.string().equals(adminLogChannelId.defaultValue)) {
+                    adminLogChannel = jda.getTextChannelById(adminLogChannelId.string());
+                }
+                if (jda.getTextChannelById(channelIdConf.string()) == null) {
+                    Log.err("[AlphaCord] Configuration error: Configured channel @ does not exist, or the bot does not have access to it.", channelIdConf.string());
+                    return; //Skip all further initialization if the plugin isn't configured correctly, to avoid crashing everything...
+                }
+            }
+        });
 
 
 
@@ -127,11 +132,11 @@ public class AlphaCordPlugin extends Plugin {
         });
         Events.on(GameOverEvent.class, event -> {
             //Why oh why does Java not have string interpolation?
-            String message = Strings.format(
+            sendServerMessage(Strings.format(
                     """
-                    Game over on @!
-                    @ waves passed,
-                    @ enemies destroyed,
+                    Game over on *@*!
+                    **@** waves passed,
+                    **@** enemies destroyed,
                     @ buildings built,
                     @ buildings destroyed,
                     and @ units built,
@@ -140,8 +145,7 @@ public class AlphaCordPlugin extends Plugin {
                     Vars.state.map.name(), Vars.state.stats.wavesLasted, Vars.state.stats.enemyUnitsDestroyed,
                     Vars.state.stats.buildingsBuilt, Vars.state.stats.buildingsDestroyed, Vars.state.stats.unitsCreated,
                     Groups.player.size()
-            );
-            sendServerMessage(message);
+            ));
         });
 
         //Listen for a Discord chat event
