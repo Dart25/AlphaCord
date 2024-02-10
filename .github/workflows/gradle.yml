@@ -25,3 +25,4 @@ jobs:
         repo_token: ${{ secrets.GITHUB_TOKEN }}
         file: build/libs/${{ github.event.repository.name }}.jar
         tag: build_${{ github.ref }}
+        overwrite: true
