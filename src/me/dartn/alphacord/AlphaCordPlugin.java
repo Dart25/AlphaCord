@@ -281,6 +281,8 @@ public class AlphaCordPlugin extends Plugin {
 
     //https://github.com/Anuken/Mindustry/blob/93daa7a5dcc3fac9e5f40c3375e9f57ae4720ff4/core/src/mindustry/net/Administration.java#L36
     private static boolean msgIsSpam(Player player, String message) {
+        if(message.equals("/ohno")) return true;
+
         long resetTime = Config.messageRateLimit.num() * 1000L;
         if (Config.antiSpam.bool() && !player.isLocal() && !player.admin){
             //prevent people from spamming messages quickly
