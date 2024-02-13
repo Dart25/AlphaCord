@@ -1,4 +1,5 @@
 apply plugin: "java"
+apply plugin: "idea"
 
 version '1.0'
 
@@ -8,6 +9,14 @@ sourceSets.main.java.srcDirs = ["src"]
 
 compileJava.options.encoding = "UTF-8"
 compileTestJava.options.encoding = "UTF-8"
+
+//fix no docs for mindustry classes/methods on
+idea {
+    module {
+        downloadJavadoc = true
+        downloadSources = true
+    }
+}
 
 repositories{
     mavenCentral()
