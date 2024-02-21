@@ -163,7 +163,7 @@ public class AlphaCordPlugin extends Plugin {
         }
 
         //TEMP
-        jda.getGuildById("965438060508631050").updateCommands().addCommands(
+        adminLogChannel.getGuild().updateCommands().addCommands(
                 Commands.slash("mapname", "Sends the current map's name."),
                 Commands.slash("map", "Sends a screenshot of the current map."),
                 Commands.slash("list", "Lists all online players."),
