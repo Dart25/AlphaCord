@@ -4,6 +4,7 @@ import arc.graphics.Pixmap;
 import arc.graphics.PixmapIO;
 import arc.util.Strings;
 import arc.util.io.Streams;
+import me.dartn.alphacord.Utils;
 import me.dartn.alphacord.gfx.FontRenderer;
 import me.dartn.alphacord.gfx.MapRenderer;
 import mindustry.Vars;
@@ -39,25 +40,14 @@ public class MapCommands extends ListenerAdapter {
                 event.deferReply().queue();
 
                 Pixmap pix = MapRenderer.takeMapScreenshot();
-                this.fontRenderer.setScale(1);
-                this.fontRenderer.draw(pix, 6, 5, Strings.format("Map: \"@\" by @", state.map.plainName(), state.map.plainAuthor()));
+                this.fontRenderer.setScale(Math.max(Math.min(state.map.width / 200, state.map.height / 200), 1));
+                this.fontRenderer.drawWithShadow(pix, 6, 5, Strings.format("Map: \"@\" by @", state.map.plainName(), state.map.plainAuthor()));
 
-                try (Streams.OptimizedByteArrayOutputStream out = new Streams.OptimizedByteArrayOutputStream(65536)) {
-                    PixmapIO.PngWriter writer = new PixmapIO.PngWriter();
-                    writer.setFlipY(false);
-                    writer.setCompression(Deflater.BEST_COMPRESSION);
-                    writer.write(out, pix);
-                    writer.dispose(); //fsr doesn't impl autodisposable
-
-                    FileUpload f = FileUpload.fromData(out.toByteArray(), "map.png");
-
-                    //reply
-                    event.getHook().sendFiles(f).queue();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-
+                byte[] png = Utils.pixToPng(pix);
                 pix.dispose();
+
+                FileUpload f = FileUpload.fromData(png, "map.png");
+                event.getHook().sendFiles(f).queue();
                 break;
         }
     }

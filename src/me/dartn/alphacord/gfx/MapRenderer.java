@@ -59,13 +59,6 @@ public class MapRenderer {
             bc = colorFor(real, tile.floor(), tile.overlay(), tile.team());
         }
 
-        if (real == Blocks.sand) {
-            //add some noise to sand
-            int off = rng.nextInt(16);
-            int noise = (off << 24) | (off << 16) | (off << 8) | 0xFF;
-            bc += noise;
-        }
-
         Color color = Tmp.c1.set(bc);
         color.mul(1f - Mathf.clamp(world.getDarkness(tile.x, tile.y) / 4f));
 
@@ -73,6 +66,12 @@ public class MapRenderer {
             color.mul(0.7f);
         } else if (tile.floor().isLiquid && (tile.y >= world.height() - 1 || !world.tile(tile.x, tile.y + 1).floor().isLiquid)){
             color.mul(0.84f, 0.84f, 0.9f, 1f);
+        }
+
+        //add noise
+        if (color.r > 0.0f || color.g > 0.0f || color.b > 0.0f) {
+            float noise = rng.nextFloat() * 0.04f;
+            color.add(noise, noise, noise);
         }
 
         return color.rgba();

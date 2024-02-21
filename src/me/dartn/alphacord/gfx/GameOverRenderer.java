@@ -5,6 +5,7 @@ import arc.graphics.PixmapIO;
 import arc.math.geom.Point2;
 import arc.util.Strings;
 import arc.util.io.Streams;
+import me.dartn.alphacord.Utils;
 
 import java.io.IOException;
 import java.util.zip.Deflater;
@@ -26,7 +27,7 @@ public class GameOverRenderer {
                                              """;
 
     private final FontRenderer fontRenderer;
-    private final Pixmap alpha;
+    private final AlphaRenderer alphaRenderer;
     private final int imgWidth;
     private final int imgHeight;
 
@@ -38,11 +39,11 @@ public class GameOverRenderer {
     private int unitsBuilt;
     private int playersOnline;
 
-    public GameOverRenderer(FontRenderer fontRenderer, Pixmap alpha, int imgWidth, int imgHeight) {
+    public GameOverRenderer(FontRenderer fontRenderer, AlphaRenderer alpha, int imgWidth, int imgHeight) {
         this.fontRenderer = fontRenderer;
         this.imgWidth = imgWidth;
         this.imgHeight = imgHeight;
-        this.alpha = alpha;
+        this.alphaRenderer = alpha;
 
         this.mapName = "";
         this.wavesPassed = -1;
@@ -116,7 +117,7 @@ public class GameOverRenderer {
         //text begin
         this.fontRenderer.setScale(3);
         Point2 gameOverTextSize = this.fontRenderer.measureTextSize(gameOverText);
-        this.fontRenderer.drawCentredX(pix, wh, GAME_OVER_TEXT_OFFSET, gameOverText);
+        this.fontRenderer.drawCentredXWithShadow(pix, wh, GAME_OVER_TEXT_OFFSET, gameOverText);
 
         this.fontRenderer.setScale(2);
         String info = Strings.format(infoFormat,
@@ -132,22 +133,25 @@ public class GameOverRenderer {
 
         Point2 infoSize = this.fontRenderer.measureTextSize(info);
 
-        int curY = hh - (infoSize.y / 2);
-        for (int i = 0; i < infoLines.length; i++) {
+        //int curY = hh - (infoSize.y / 2);
+        /*for (int i = 0; i < infoLines.length; i++) {
             String line = infoLines[i];
             Point2 lineSize = this.fontRenderer.measureTextSize(line);
 
-            this.fontRenderer.drawCentredX(pix, wh, curY, line);
+            this.fontRenderer.drawCentredXWithShadow(pix, wh, curY, line);
             curY += lineSize.y + TEXT_MARGIN;
-        }
+        }*/
+        int texY = hh - (infoSize.y / 2);
+        this.fontRenderer.drawLinesCentredXWithShadow(pix, wh, texY, infoLines);
 
         //alphas
-        int alx = wh - (gameOverTextSize.x / 2) - this.alpha.width - ALPHA_OFFSET;
+        /*int alx = wh - (gameOverTextSize.x / 2) - this.alpha.width - ALPHA_OFFSET;
         int arx = wh + (gameOverTextSize.x / 2) + (ALPHA_OFFSET / 2);
         int ay = GAME_OVER_TEXT_OFFSET + 4;
 
         pix.draw(this.alpha, 0, 0, this.alpha.width, this.alpha.height, alx, ay, this.alpha.width, this.alpha.height, false, true);
-        pix.draw(this.alpha, 0, 0, this.alpha.width, this.alpha.height, arx, ay, this.alpha.width, this.alpha.height, false, true);
+        pix.draw(this.alpha, 0, 0, this.alpha.width, this.alpha.height, arx, ay, this.alpha.width, this.alpha.height, false, true);*/
+        this.alphaRenderer.draw(pix, wh, GAME_OVER_TEXT_OFFSET + 4, gameOverTextSize.x);
 
         return pix;
     }
@@ -191,17 +195,9 @@ public class GameOverRenderer {
     }
 
     public byte[] drawPng() {
-        PixmapIO.PngWriter writer = new PixmapIO.PngWriter();
-        writer.setFlipY(false);
-        writer.setCompression(Deflater.BEST_COMPRESSION);
-        try (Streams.OptimizedByteArrayOutputStream out = new Streams.OptimizedByteArrayOutputStream(4096)) {
-            Pixmap pix = draw();
-            writer.write(out, pix);
-            pix.dispose();
-            return out.toByteArray();
-        } catch (IOException ex) {
-            //throw intentional
-            throw new RuntimeException(ex);
-        }
+        Pixmap pix = draw();
+        byte[] png = Utils.pixToPng(pix);
+        pix.dispose();
+        return png;
     }
 }
