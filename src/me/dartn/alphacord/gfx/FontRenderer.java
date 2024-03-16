@@ -205,7 +205,7 @@ public class FontRenderer implements Disposable, AutoCloseable {
                 if (fxo > w) w = fxo;
             }
 
-            //Log.info(Strings.format("w(@) = @", ((char)c), w));
+            Log.info(Strings.format("w(@) = @", ((char)c), w));
 
             //save
             this.widths[c] = w;
