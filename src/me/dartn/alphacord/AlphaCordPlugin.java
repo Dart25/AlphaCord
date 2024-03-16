@@ -10,8 +10,9 @@ import club.minnced.discord.webhook.send.AllowedMentions;
 import club.minnced.discord.webhook.send.WebhookMessageBuilder;
 import me.dartn.alphacord.commands.MapCommands;
 import me.dartn.alphacord.commands.PlayerCommands;
-import me.dartn.alphacord.commands.ServerCommands;
-import me.dartn.alphacord.gfx.*;
+import me.dartn.alphacord.gfx.FontRenderer;
+import me.dartn.alphacord.gfx.GameOverRenderer;
+import me.dartn.alphacord.gfx.MapRenderer;
 import mindustry.Vars;
 import mindustry.game.EventType.*;
 import mindustry.game.Team;
@@ -24,9 +25,7 @@ import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
-import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
-import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import org.jetbrains.annotations.NotNull;
 
@@ -58,7 +57,6 @@ public class AlphaCordPlugin extends Plugin {
     private TextChannel adminLogChannel;
     private FontRenderer fontRenderer;
     private GameOverRenderer gameOverRenderer;
-    private MapListRenderer mapListRenderer;
     private Pixmap alpha;
 
     //emote replacement range
@@ -98,9 +96,7 @@ public class AlphaCordPlugin extends Plugin {
         this.fontRenderer = new FontRenderer(downloadPng("https://dartn.duckdns.org/Mindustry/fnt.png"));
         Log.info("Font loaded.");
         this.alpha = downloadPng("https://dartn.duckdns.org/Mindustry/alpha2.png");
-        AlphaRenderer alphaRenderer = new AlphaRenderer(this.alpha);
-        this.gameOverRenderer = new GameOverRenderer(this.fontRenderer, alphaRenderer,256, 256);
-        this.mapListRenderer = new MapListRenderer(this.fontRenderer, alphaRenderer);
+        this.gameOverRenderer = new GameOverRenderer(this.fontRenderer, this.alpha,256, 256);
 
         //emote db
         loadServerAsset("https://dartn.duckdns.org/Mindustry/emdb.xml", props -> {
@@ -166,11 +162,7 @@ public class AlphaCordPlugin extends Plugin {
         jda.getGuildById("965438060508631050").updateCommands().addCommands(
                 Commands.slash("mapname", "Sends the current map's name."),
                 Commands.slash("map", "Sends a screenshot of the current map."),
-                Commands.slash("list", "Lists all online players."),
-                Commands.slash("maps", "Lists all maps.")
-                        .addOptions(new OptionData(OptionType.INTEGER, "page", "The page of the map list to display.")
-                                .setRequiredRange(1L, 200L)
-                                .setRequired(true))
+                Commands.slash("list", "Lists all online players.")
         ).queue();
 
         registerCommandListeners();
@@ -275,9 +267,8 @@ public class AlphaCordPlugin extends Plugin {
     }
 
     private void registerCommandListeners() {
-        this.jda.addEventListener(new MapCommands(this.fontRenderer));
-        this.jda.addEventListener(new PlayerCommands());
-        this.jda.addEventListener(new ServerCommands(this.mapListRenderer));
+        jda.addEventListener(new MapCommands(this.fontRenderer));
+        jda.addEventListener(new PlayerCommands());
     }
 
     private void onPlayerChat(PlayerChatEvent event) { //!

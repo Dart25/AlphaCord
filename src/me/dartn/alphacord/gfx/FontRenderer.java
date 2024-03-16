@@ -3,11 +3,9 @@ package me.dartn.alphacord.gfx;
 import arc.func.IntIntf;
 import arc.graphics.Pixmap;
 import arc.math.geom.Point2;
-import arc.struct.Seq;
 import arc.util.Disposable;
 import arc.util.Log;
 import arc.util.Strings;
-import mindustry.maps.Map;
 
 public class FontRenderer implements Disposable, AutoCloseable {
     private static final int NUM_CHARS = 256;
@@ -61,10 +59,6 @@ public class FontRenderer implements Disposable, AutoCloseable {
         this.colour = colour;
     }
 
-    public int getScale() {
-        return this.scale;
-    }
-
     public void draw(Pixmap target, int x, int y, String text) {
         int curX = x;
         int curY = y;
@@ -89,60 +83,15 @@ public class FontRenderer implements Disposable, AutoCloseable {
             int px = (oc % this.atlasCols) * CHAR_WIDTH;
             int py = (oc / this.atlasRows) * CHAR_HEIGHT;
 
-            //manual pixel copy to allow for colouring
-            for (int srcY = py; srcY < py + CHAR_HEIGHT; srcY++) {
-                for (int srcX = px; srcX < px + CHAR_WIDTH; srcX++) {
-                    if (this.atlas.get(srcX, srcY) != 0xFFFFFFFF) continue;
-
-                    //optimize for 1px scale, no need to bother drawing a rect there
-                    if (this.scale == 1) {
-                        int dstX = curX + (srcX - px);
-                        int dstY = curY + (srcY - py);
-                        target.set(dstX, dstY, this.colour);
-                    } else {
-                        int pxs = curX + ((srcX - px) * this.scale);
-                        int pys = curY + ((srcY - py) * this.scale);
-                        target.fillRect(pxs, pys, this.scale, this.scale, this.colour);
-                    }
-                }
-            }
-
-            //target.draw(this.atlas, px, py, CHAR_WIDTH, CHAR_HEIGHT, curX, curY, CHAR_WIDTH * this.scale, CHAR_HEIGHT * this.scale, false, true);
+            target.draw(this.atlas, px, py, CHAR_WIDTH, CHAR_HEIGHT, curX, curY, CHAR_WIDTH * this.scale, CHAR_HEIGHT * this.scale, false, true);
 
             curX += (cw * this.scale) + this.scale;
         }
     }
 
-    //centres every line properly
-    public void drawLinesCentredXWithShadow(Pixmap target, int x, int y, String[] lines) {
-        for (int i = 0; i < lines.length; i++) {
-            String line = lines[i];
-            Point2 lineSize = measureTextSize(line);
-
-            drawCentredXWithShadow(target, x, y, line);
-            y += lineSize.y + this.scale;
-        }
-    }
-
-
-    public void drawWithShadow(Pixmap target, int x, int y, String text) {
-        int oc = this.colour;
-        int dc = ((oc & 0xFCFCFC00) >>> 2) | 0x000000FF;
-
-        setColour(dc);
-        draw(target, x + this.scale, y + this.scale, text);
-        setColour(oc);
-        draw(target, x, y, text);
-    }
-
     public void drawCentredX(Pixmap target, int x, int y, String text) {
         Point2 size = measureTextSize(text);
         draw(target, x - (size.x / 2), y, text);
-    }
-
-    public void drawCentredXWithShadow(Pixmap target, int x, int y, String text) {
-        Point2 size = measureTextSize(text);
-        drawWithShadow(target, x - (size.x / 2), y, text);
     }
 
     //lobotomized draw function
@@ -195,6 +144,13 @@ public class FontRenderer implements Disposable, AutoCloseable {
                 for (int relX = CHAR_WIDTH - 1; relX >= 0; relX--) {
                     int ax = px + relX;
                     int pix = this.atlas.get(ax, y);
+
+                    /*int r = (pix >> 24) & 0xFF;
+                    int g = (pix >> 16) & 0xFF;
+                    int b = (pix >> 8) & 0xFF;
+                    int a = pix & 0xFF;
+
+                    Log.info(Strings.format("Char @, p=@,@, r=@,g=@,b=@,a=@"), ((char)c), ax, y, r, g, b, a);*/
 
                     if (pix == 0xFFFFFFFF) {
                         fxo = relX + 1;
