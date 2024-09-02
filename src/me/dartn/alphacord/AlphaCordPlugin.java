@@ -1,13 +1,13 @@
 package me.dartn.alphacord;
 
 import arc.*;
-import arc.func.ConsT;
 import arc.util.*;
 import club.minnced.discord.webhook.WebhookClient;
 import club.minnced.discord.webhook.external.JDAWebhookClient;
 import club.minnced.discord.webhook.send.AllowedMentions;
-import club.minnced.discord.webhook.send.WebhookMessage;
 import club.minnced.discord.webhook.send.WebhookMessageBuilder;
+import me.dartn.alphacord.commands.ServerCommands;
+import me.dartn.alphacord.gfx.MapRenderer;
 import mindustry.Vars;
 import mindustry.game.EventType.*;
 import mindustry.gen.*;
@@ -20,6 +20,9 @@ import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.events.session.ReadyEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import net.dv8tion.jda.api.interactions.commands.OptionType;
+import net.dv8tion.jda.api.interactions.commands.build.Commands;
+import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import org.jetbrains.annotations.NotNull;
 
@@ -63,7 +66,6 @@ public class AlphaCordPlugin extends Plugin {
     //Called when the game initializes
     @Override
     public void init(){
-        
         //Config check
         if (channelIdConf.string().equals(channelIdConf.defaultValue) ||
                 tokenConf.string().equals(tokenConf.defaultValue) ||
@@ -72,7 +74,22 @@ public class AlphaCordPlugin extends Plugin {
             return; //Skip all further initialization if the plugin isn't configured correctly, to avoid crashing everything...
         }
 
-        loadEmoteDatabase();
+        //emote db
+        loadServerAsset("https://dartn.duckdns.org/Mindustry/emdb.xml", props -> {
+            emoteReplacements = new String[emoteRangeEnd - emoteRangeStart + 1];
+            props.forEach((key, value) -> {
+                //safe cast, props is clean
+                emoteReplacements[Integer.parseInt((String)key, 16) - emoteRangeStart] = (String)value;
+            });
+        });
+        //colour db
+        loadServerAsset("https://dartn.duckdns.org/Mindustry/colourDb.xml", props -> {
+            props.forEach((key, value) -> {
+                String k = (String)key;
+                int v = Integer.parseInt((String)value);
+                MapRenderer.colours.put(k, v);
+            });
+        });
 
         //Cleanup, uses ApplicationListener because DisposeEvent isn't fired on the server, since
         //for some reason it's fired from the Renderer class...
@@ -92,7 +109,6 @@ public class AlphaCordPlugin extends Plugin {
                 .enableIntents(GatewayIntent.MESSAGE_CONTENT)
                 .setActivity(Activity.playing("on the Fish Mindustry server"))
                 .build();
-
             webhookClient = JDAWebhookClient.withUrl(webhookUrl.string());
         } catch (Exception e){
             e.printStackTrace();
@@ -108,10 +124,19 @@ public class AlphaCordPlugin extends Plugin {
                     Log.err("[AlphaCord] Configuration error: Configured channel @ does not exist, or the bot does not have access to it.", channelIdConf.string());
                     return; //Skip all further initialization if the plugin isn't configured correctly, to avoid crashing everything...
                 }
+
+                //TEMP
+                jda.updateCommands().addCommands(
+                        Commands.slash("map", "Sends a screenshot of the current map."),
+                        Commands.slash("list", "Lists online players."),
+                        Commands.slash("maps", "Lists all maps.")
+                                .addOptions(new OptionData(OptionType.INTEGER, "page", "The page of the map list to display.")
+                                        .setRequiredRange(1L, 200L)
+                                        .setRequired(true))
+                ).queue();
+                jda.addEventListener(new ServerCommands());
             }
         });
-
-
 
         //Listen for a Mindustry chat message event
         Events.on(PlayerChatEvent.class, this::onPlayerChat);
@@ -312,20 +337,17 @@ public class AlphaCordPlugin extends Plugin {
         return message;
     }
 
-    private static void loadEmoteDatabase() {
-        //download the emote db from my server
-        Log.info("Downloading emote database...");
-        Http.get("https://dartn.duckdns.org/Mindustry/emdb.xml", res -> {
-            emoteReplacements = new String[emoteRangeEnd - emoteRangeStart + 1];
+    private static void loadServerAsset(String url, ServerAssetLoadHandler handler) {
+        Log.info("Downloading server asset...");
+        Http.get(url, res -> {
             //parse and load
             Properties props = new Properties();
             props.loadFromXML(res.getResultAsStream());
-            props.forEach((key, value) -> {
-                //Safe cast, props is clean
-                emoteReplacements[Integer.parseInt((String)key, 16) - emoteRangeStart] = (String)value;
-            });
-            Log.info("Downloaded emote database.");
-        }, e -> Log.err("EDB load failed! Emote fixer won't work :/"));
+            Log.info("Downloaded server asset. Running callback.");
+            handler.handleLoad(props);
+        }, e -> {
+            Log.err("Asset load failed! Something will be broken :/", e);
+        });
     }
 
     //https://forums.oracle.com/ords/apexds/post/convert-java-awt-color-to-hex-string-8724#comment_323462165417437941337851389448683170665
