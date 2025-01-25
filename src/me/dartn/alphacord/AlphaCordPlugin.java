@@ -37,9 +37,13 @@ public class AlphaCordPlugin extends Plugin {
             adminLogChannelId = new Config("adminLogChannelId", "ID of the Discord channel to send messages in. In the old format, to make it easier to search for messages from a specific player.", "ADMIN_CID_HERE");
 
     //Make the last 2 false to disable pinging Discord users from Mindustry
-    private static final AllowedMentions allowedMentions = new AllowedMentions()
+    private static final AllowedMentions defaultAllowedMentions = new AllowedMentions()
             .withParseEveryone(false)
             .withParseUsers(true)
+            .withParseRoles(false);
+    private static final AllowedMentions noAllowedMentions = new AllowedMentions()
+            .withParseEveryone(false)
+            .withParseUsers(false)
             .withParseRoles(false);
 
     private JDA jda;
@@ -226,7 +230,7 @@ public class AlphaCordPlugin extends Plugin {
         }
 
         //used to default to https://files.catbox.moe/1dmf06.png
-        sendDiscordMessage(fixRankEmojis(Strings.stripColors(event.player.name)), cleanTextToDiscord(filteredMessage), avatarUrl);
+        sendDiscordMessage(fixRankEmojis(Strings.stripColors(event.player.name)), cleanTextToDiscord(filteredMessage), avatarUrl, defaultAllowedMentions);
     }
 
     private void sendServerMessage(String message) {
@@ -234,7 +238,7 @@ public class AlphaCordPlugin extends Plugin {
         //and just using a core is boring :P
         try {
             sendAdminLogMessage(message);
-            sendDiscordMessage("Server", message, "https://dartn.duckdns.org/Mindustry/alpha.png");
+            sendDiscordMessage("Server", message, "https://dartn.duckdns.org/Mindustry/alpha.png", noAllowedMentions);
         } catch (Exception ignored) { }
     }
 
@@ -280,13 +284,8 @@ public class AlphaCordPlugin extends Plugin {
         return fixMessageEmojis(escapeTextDiscord(Strings.stripColors(text)));
     }
 
-    private void sendDiscordMessage(String username, String message, String avatarUrl) {
-        if (username.isEmpty() || message.isEmpty()) {
-            /*Log.info("FAIL!");
-            Log.info(username);
-            Log.info(message);*/
-            return;
-        }
+    private void sendDiscordMessage(String username, String message, String avatarUrl, AllowedMentions allowedMentions) {
+        if (username.isEmpty() || message.isEmpty()) return;
 
         webhookClient.send(
             new WebhookMessageBuilder()
