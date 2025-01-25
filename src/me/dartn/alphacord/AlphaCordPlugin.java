@@ -24,9 +24,11 @@ import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import net.dv8tion.jda.api.requests.GatewayIntent;
+import net.dv8tion.jda.api.utils.messages.MessageCreateBuilder;
 import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
+import java.util.Collections;
 import java.util.Properties;
 
 public class AlphaCordPlugin extends Plugin {
@@ -299,7 +301,11 @@ public class AlphaCordPlugin extends Plugin {
 
     private void sendAdminLogMessage(String message){
         try {
-            if(adminLogChannel != null) adminLogChannel.sendMessage(message).queue();
+            if(adminLogChannel != null) adminLogChannel.sendMessage(new MessageCreateBuilder()
+                .setContent(message)
+                .setAllowedMentions(Collections.emptyList())
+                .build()
+            ).queue();
         } catch(Exception ignored){}
     }
 
