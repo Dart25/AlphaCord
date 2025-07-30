@@ -10,7 +10,7 @@ import rhino.ScriptableObject;
 public class FishGlue {
     private static final String glueScriptName = "alphaCordGlue.js";
     private static final String script = """
-            const players = require("players");
+            const players = require("/players");
             return players.FishPlayer.getById(alphaCordUserId).muted;""";
     private static final String idVarName = "alphaCordUserId";
 
