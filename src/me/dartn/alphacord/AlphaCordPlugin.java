@@ -210,9 +210,9 @@ public class AlphaCordPlugin extends Plugin {
         //ignore messages from muted players
         if (FishGlue.isPlayerMuted(event.player.uuid())) return;
 
-        Unit playerUnit = event.player.unit();
+        var unit = event.player.unit();
         String avatarUrl = Strings.format("https://dartn.duckdns.org/Mindustry/teams/team@/@.png",
-                playerUnit.team.id, playerUnit.type.name);
+                unit == null ? 0 : unit.team.id, unit == null ? "alpha" : unit.type.name);
 
         String filteredMessage = cleanMessage(event.message);
         
