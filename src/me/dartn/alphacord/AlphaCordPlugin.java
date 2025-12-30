@@ -58,6 +58,7 @@ public class AlphaCordPlugin extends Plugin {
 
     //icon substitutions
     private static final CharReplacement[] rankReplacements = new CharReplacement[] {
+        CharReplacement.rankPrefix(Iconc.ok, 'V'), //active
         CharReplacement.rankPrefix(Iconc.add, 'T'), //trusted
         CharReplacement.rankPrefix(Iconc.hammer, 'M'), //mod
         CharReplacement.rankPrefix(Iconc.admin, 'A'), //admin
