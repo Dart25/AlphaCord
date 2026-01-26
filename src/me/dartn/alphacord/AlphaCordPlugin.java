@@ -227,7 +227,9 @@ public class AlphaCordPlugin extends Plugin {
         if (
             filteredMessage.startsWith(Vars.netServer.clientCommands.getPrefix()) &&
             //unless it's /t and the mode isn't pvp
-            !(filteredMessage.startsWith(Vars.netServer.clientCommands.getPrefix() + "t ") && !Vars.state.rules.pvp)
+            !(filteredMessage.startsWith(Vars.netServer.clientCommands.getPrefix() + "t ") && !Vars.state.rules.pvp) &&
+            //or unless it's /votekick
+            !(filteredMessage.startsWith(Vars.netServer.clientCommands.getPrefix() + "votekick "))
         ) return;
 
         //spam filter is always index 0, we skip it because we have our own impl
