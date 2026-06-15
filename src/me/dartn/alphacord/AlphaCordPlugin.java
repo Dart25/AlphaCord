@@ -195,7 +195,7 @@ public class AlphaCordPlugin extends Plugin {
                 Core.app.post(() -> { //uE80D is the Discord symbol ingame
                     Call.sendMessage(Strings.format(
                         "[blue]\uE80D [@]@: [white]@",
-                        colourToHex(event.getMember().getColor()),
+                        colourToHex(event.getMember().getColors().getPrimary()),
                         event.getMember().getEffectiveName(),
                         (event.getMessage().getContentDisplay() + attBuilder.toString()).trim()
                     ));

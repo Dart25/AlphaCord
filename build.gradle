@@ -33,14 +33,14 @@ ext{
 //java 8 backwards compatibility flag
 allprojects{
     tasks.withType(JavaCompile){
-        options.compilerArgs.addAll(['--release', '8'])
+        options.compilerArgs.addAll(['--release', '8', '-Xlint:deprecation'])
     }
 }
 
 dependencies{
     //discord deps
-    def jdaVersion = '5.0.0-beta.10'
-    def webhooksVersion = '0.8.2'
+    def jdaVersion = '6.4.2'
+    def webhooksVersion = '0.8.4'
 
     compileOnly "Anuken:Mindustry:$mindustryVersion"
     annotationProcessor "Anuken:jabel:v1.0.0"
