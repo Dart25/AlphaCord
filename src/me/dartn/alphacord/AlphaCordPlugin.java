@@ -172,7 +172,7 @@ public class AlphaCordPlugin extends Plugin {
                     and `@` units built,
                     with `@` people online.
                     """, //TODO make message include winning team, and gamemode specific (eg say game over on survival, defeat/victory on attack, something else on pvp)
-                    cleanTextToDiscord(Vars.state.map.name()), Vars.state.stats.wavesLasted, Vars.state.stats.enemyUnitsDestroyed,
+                    cleanTextToDiscord(Vars.state.map.name()), Vars.state.wave, Vars.state.stats.enemyUnitsDestroyed,
                     Vars.state.stats.buildingsBuilt, Vars.state.stats.buildingsDestroyed, Vars.state.stats.unitsCreated,
                     Groups.player.size()
             ));
