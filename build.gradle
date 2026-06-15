@@ -11,14 +11,23 @@ compileTestJava.options.encoding = "UTF-8"
 
 repositories{
     mavenCentral()
-    maven{ url "https://raw.githubusercontent.com/Zelaux/MindustryRepo/master/repository" }
-    maven{ url 'https://www.jitpack.io' }
+    maven { url "https://raw.githubusercontent.com/Anuken/Mindustry/master/repository" }
+    ivy {
+        url 'https://github.com/'
+        patternLayout{artifact '/[organisation]/[module]/releases/download/[revision]/server-release.jar'}
+        metadataSources{ artifact() }
+    }
+
+    ivy {
+        url 'https://github.com/'
+        patternLayout{artifact '/[organisation]/[module]/releases/download/[revision]/jabel.jar'}
+        metadataSources{ artifact() }
+    }
 }
 
 ext{
     //the build number that this plugin is made for
-    mindustryVersion = 'v145'
-    jabelVersion = "93fde537c7"
+    mindustryVersion = 'v158.1'
 }
 
 //java 8 backwards compatibility flag
@@ -33,9 +42,8 @@ dependencies{
     def jdaVersion = '5.0.0-beta.10'
     def webhooksVersion = '0.8.2'
 
-    compileOnly "com.github.Anuken.Arc:arc-core:$mindustryVersion"
-    compileOnly "com.github.Anuken.Mindustry:core:$mindustryVersion"
-    annotationProcessor "com.github.Anuken:jabel:$jabelVersion"
+    compileOnly "Anuken:Mindustry:$mindustryVersion"
+    annotationProcessor "Anuken:jabel:v1.0.0"
     //change 'implementation' to 'compile' in old Gradle versions
     implementation("net.dv8tion:JDA:$jdaVersion") {
         exclude module: 'opus-java'
