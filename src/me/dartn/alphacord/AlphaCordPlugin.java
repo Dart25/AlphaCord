@@ -105,8 +105,15 @@ public class AlphaCordPlugin extends Plugin {
             public void dispose() {
                 sendServerMessage("Server stopped!");
 
-                if(webhookClient != null) webhookClient.close();
-                if(jda != null) jda.shutdownNow();
+                try {
+                    if(webhookClient != null) webhookClient.close();
+                    if(jda != null){
+                        jda.shutdownNow();
+                        var client = jda.getHttpClient();
+                        client.connectionPool().evictAll();
+                        client.dispatcher().executorService().shutdown();
+                    }
+                } catch(Exception ignored){}
             }
         });
 
