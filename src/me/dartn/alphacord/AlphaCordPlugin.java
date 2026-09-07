@@ -223,12 +223,11 @@ public class AlphaCordPlugin extends Plugin {
                 unit == null ? 0 : unit.team.id, unit == null ? "alpha" : unit.type.name);
 
         String filteredMessage = cleanMessage(event.message);
-        
-        //admin log messages are in the old format which is easier to search, this is also uncensored & colours aren't removed
-        sendAdminLogMessage(Strings.format("**@**: @", Strings.stripColors(event.player.name), filteredMessage));
-
 
         if (msgIsSpam(event.player, filteredMessage)) return;
+
+        //admin log messages are in the old format which is easier to search, this is also uncensored & colours aren't removed
+        sendAdminLogMessage(Strings.format("**@**: @", Strings.stripColors(event.player.name), filteredMessage));
 
         //don't send commands (but send them to log)
         if (
